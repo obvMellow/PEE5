@@ -1,3 +1,6 @@
+mod commands;
+mod config;
+
 use colored::Colorize;
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManagerError;
@@ -6,6 +9,7 @@ use serenity::model::application::interaction::{Interaction, InteractionResponse
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
+use config::Config;
 
 pub type Result<T> = std::result::Result<T, ShardManagerError>;
 
@@ -48,7 +52,7 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
-    let token = std::env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    let token = Config::load("config.json").discord_token;
 
     let mut client = Client::builder(token, GatewayIntents::all())
         .event_handler(Handler)

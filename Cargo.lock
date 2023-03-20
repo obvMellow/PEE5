@@ -548,6 +548,7 @@ name = "pee5"
 version = "0.1.0"
 dependencies = [
  "colored",
+ "serde_json",
  "serenity",
  "tokio",
 ]
