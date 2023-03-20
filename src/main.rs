@@ -2,6 +2,7 @@ mod commands;
 mod config;
 
 use colored::Colorize;
+use config::Config;
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManagerError;
 use serenity::model::application::command::Command;
@@ -9,7 +10,6 @@ use serenity::model::application::interaction::{Interaction, InteractionResponse
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
-use config::Config;
 
 pub type Result<T> = std::result::Result<T, ShardManagerError>;
 
