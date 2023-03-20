@@ -7,7 +7,7 @@ use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
 
-type Result<T> = std::result::Result<T, ShardManagerError>;
+pub type Result<T> = std::result::Result<T, ShardManagerError>;
 
 struct Handler;
 
