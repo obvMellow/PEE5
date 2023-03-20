@@ -50,7 +50,7 @@ impl EventHandler for Handler {
 async fn main() {
     let token = std::env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
-    let mut client = Client::builder(token, GatewayIntents::empty())
+    let mut client = Client::builder(token, GatewayIntents::all())
         .event_handler(Handler)
         .await
         .expect("Error creating client");
