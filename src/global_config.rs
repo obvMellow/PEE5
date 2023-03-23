@@ -2,12 +2,12 @@ use serde_json::Value;
 use std::fs::File;
 
 #[derive(Debug)]
-pub struct Config {
+pub struct GlobalConfig {
     pub discord_token: String,
     pub json: Value,
 }
 
-impl Config {
+impl GlobalConfig {
     pub fn load(path: impl AsRef<str>) -> Self {
         let file = match File::open(path.as_ref()) {
             Ok(v) => v,
