@@ -28,6 +28,7 @@ impl EventHandler for Handler {
             let result: Result<()> = match command.data.name.as_str() {
                 "echo" => commands::echo::run(&ctx, &command).await,
                 "timeout" => commands::timeout::run(&ctx, &command).await,
+                "config" => commands::config::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -51,6 +52,11 @@ impl EventHandler for Handler {
             .unwrap(),
             Command::create_global_application_command(&ctx.http, |command| {
                 commands::timeout::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::config::register(command)
             })
             .await
             .unwrap(),
