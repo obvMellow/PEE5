@@ -1,5 +1,6 @@
 use crate::Result;
 use serenity::builder::CreateApplicationCommand;
+use serenity::model::permissions;
 use serenity::model::prelude::command::CommandOptionType;
 use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::interaction::InteractionResponseType;
@@ -39,4 +40,5 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .kind(CommandOptionType::String)
                 .required(true)
         })
+        .default_member_permissions(permissions::Permissions::ADMINISTRATOR)
 }

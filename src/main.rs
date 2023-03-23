@@ -6,13 +6,12 @@ use std::fs::{self, File};
 use colored::Colorize;
 use global_config::GlobalConfig;
 use serenity::async_trait;
-use serenity::client::bridge::gateway::ShardManagerError;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 
-pub type Result<T> = std::result::Result<T, ShardManagerError>;
+pub type Result<T> = std::result::Result<T, SerenityError>;
 
 struct Handler;
 
@@ -28,6 +27,7 @@ impl EventHandler for Handler {
 
             let result: Result<()> = match command.data.name.as_str() {
                 "echo" => commands::echo::run(&ctx, &command).await,
+                "timeout" => commands::timeout::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -49,8 +49,14 @@ impl EventHandler for Handler {
             })
             .await
             .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::timeout::register(command)
+            })
+            .await
+            .unwrap(),
         ];
 
+        // Create guild config files here
         let guilds = ready.guilds;
 
         for guild in guilds {
