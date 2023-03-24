@@ -5,11 +5,14 @@ use std::fs::{self, File};
 
 use colored::Colorize;
 use global_config::GlobalConfig;
+use serde_json::Value;
 use serenity::async_trait;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
+use serenity::model::prelude::{ChannelId, Message};
 use serenity::prelude::*;
+use serenity::utils::Colour;
 
 pub type Result<T> = std::result::Result<T, SerenityError>;
 
@@ -113,6 +116,46 @@ impl EventHandler for Handler {
                 .collect::<Vec<String>>(),
             ready.user.name
         );
+    }
+
+    async fn message(&self, ctx: Context, msg: Message) {
+        if msg.author.bot {
+            return;
+        }
+
+        // Do the logging here
+        let guild_id = msg.guild_id.unwrap();
+
+        let config_file = File::open(format!("guilds/{}.json", guild_id)).unwrap();
+        let config: Value = serde_json::from_reader(config_file).unwrap();
+
+        let log_channel_id: u64 = config
+            .as_object()
+            .unwrap()
+            .get("log_channel_id")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap();
+
+        for channel in guild_id.channels(&ctx.http).await.unwrap() {
+            if channel.0.as_u64().to_owned() == log_channel_id {
+                ChannelId::from(log_channel_id)
+                    .send_message(&ctx.http, |message| {
+                        message.embed(|embed| {
+                            embed
+                                .title("Message sent")
+                                .field("Sender", &msg.author, true)
+                                .field("Channel", msg.channel_id.mention(), true)
+                                .field("Content", &msg.content, false)
+                                .color(Colour::from_rgb(102, 255, 102))
+                        })
+                    })
+                    .await
+                    .unwrap();
+            }
+        }
     }
 }
 
