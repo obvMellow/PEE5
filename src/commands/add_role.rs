@@ -1,57 +1,58 @@
 use crate::Result;
 use serenity::builder::CreateApplicationCommand;
+use serenity::model::guild::Role;
 use serenity::model::prelude::command::CommandOptionType;
 use serenity::model::prelude::interaction::application_command::{
     ApplicationCommandInteraction, CommandDataOptionValue,
 };
 use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::user::User;
-use serenity::model::{Permissions, Timestamp};
+use serenity::model::Permissions;
 use serenity::prelude::Context;
 use serenity::utils::Colour;
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
-    let _user = interaction
+    let guild_id = interaction.guild_id.unwrap();
+
+    let _member = interaction
         .data
         .options
         .iter()
-        .find(|option| option.name == "user")
+        .find(|option| option.name == "member")
         .unwrap()
         .resolved
         .as_ref()
         .unwrap();
 
-    let mut user = User::default();
-
-    if let CommandDataOptionValue::User(user_id, _) = _user {
-        user = user_id.to_owned();
-    }
-
-    let guild_id = interaction.guild_id.unwrap();
-
-    let duration_i64 = interaction
+    let _role = interaction
         .data
         .options
         .iter()
-        .find(|option| option.name == "duration")
+        .find(|option| option.name == "role")
         .unwrap()
-        .value
+        .resolved
         .as_ref()
-        .unwrap()
-        .as_i64()
         .unwrap();
 
-    let duration =
-        Timestamp::from_unix_timestamp(Timestamp::now().unix_timestamp() + duration_i64).unwrap();
+    let mut member = User::default();
+    let mut role: Option<Role> = None;
 
-    let timeout = guild_id
-        .member(&ctx.http, &user)
+    if let CommandDataOptionValue::User(user_id, _) = _member {
+        member = user_id.to_owned();
+    }
+
+    if let CommandDataOptionValue::Role(role_id) = _role {
+        role = Some(role_id.to_owned());
+    }
+
+    let add_role = guild_id
+        .member(&ctx.http, &member)
         .await
         .unwrap()
-        .disable_communication_until_datetime(&ctx.http, duration)
+        .add_role(&ctx.http, role.as_ref().unwrap())
         .await;
 
-    match timeout {
+    match add_role {
         Ok(_) => {
             interaction
                 .create_interaction_response(&ctx.http, |response| {
@@ -60,19 +61,17 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                         .interaction_response_data(|message| {
                             message.embed(|embed| {
                                 embed
-                                    .title(format!("{} has been timed out", user.tag()))
+                                    .title("Role Added")
                                     .description(format!(
-                                        "{} will be able to communicate again at {}",
-                                        user, duration
+                                        "Added role {} to {}",
+                                        role.unwrap(),
+                                        member
                                     ))
-                                    .color(Colour::BLUE)
+                                    .color(Colour::ROHRKATZE_BLUE)
                             })
                         })
                 })
-                .await
-                .unwrap();
-
-            Ok(())
+                .await?;
         }
         Err(e) => {
             interaction
@@ -80,31 +79,37 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                     response
                         .kind(InteractionResponseType::ChannelMessageWithSource)
                         .interaction_response_data(|message| {
-                            message.content(format!("{} could not be timed out: {}", user, e))
+                            message.embed(|embed| {
+                                embed.title("Error");
+                                embed.description(format!("Error: {}", e));
+                                embed.color(Colour::RED)
+                            })
                         })
                 })
-                .await
+                .await?;
         }
     }
+
+    Ok(())
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
-        .name("timeout")
-        .description("Timeouts a user")
+        .name("add_role")
+        .description("Adds a role to a member")
         .create_option(|option| {
             option
-                .name("user")
-                .description("The user to timeout")
+                .name("member")
+                .description("The member to add the role to")
                 .kind(CommandOptionType::User)
                 .required(true)
         })
         .create_option(|option| {
             option
-                .name("duration")
-                .description("The duration of the timeout")
-                .kind(CommandOptionType::Integer)
+                .name("role")
+                .description("The role to add to the user")
+                .kind(CommandOptionType::Role)
                 .required(true)
         })
-        .default_member_permissions(Permissions::MODERATE_MEMBERS)
+        .default_member_permissions(Permissions::MANAGE_ROLES)
 }

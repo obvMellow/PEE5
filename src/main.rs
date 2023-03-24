@@ -29,6 +29,8 @@ impl EventHandler for Handler {
                 "echo" => commands::echo::run(&ctx, &command).await,
                 "timeout" => commands::timeout::run(&ctx, &command).await,
                 "config" => commands::config::run(&ctx, &command).await,
+                "add_role" => commands::add_role::run(&ctx, &command).await,
+                "remove_role" => commands::remove_role::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -57,6 +59,16 @@ impl EventHandler for Handler {
             .unwrap(),
             Command::create_global_application_command(&ctx.http, |command| {
                 commands::config::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::add_role::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::remove_role::register(command)
             })
             .await
             .unwrap(),

@@ -10,6 +10,7 @@ use serenity::model::prelude::interaction::application_command::{
 use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::Permissions;
 use serenity::prelude::Context;
+use serenity::utils::Colour;
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
     let guild_id = interaction.guild_id.unwrap();
@@ -64,7 +65,12 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
             response
                 .kind(InteractionResponseType::ChannelMessageWithSource)
                 .interaction_response_data(|message| {
-                    message.content(format!("Successfully set `{}` to `{}`", key, value))
+                    message.embed(|embed| {
+                        embed
+                            .title("Configuration")
+                            .description(format!("Set `{}` to `{}`", key, value))
+                            .colour(Colour::LIGHT_GREY)
+                    })
                 })
         })
         .await?;
