@@ -62,8 +62,8 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                                 embed
                                     .title(format!("{} has been timed out", user.tag()))
                                     .description(format!(
-                                        "{} will be able to communicate again at {}",
-                                        user, duration
+                                        "{} will be able to communicate again after {} seconds.",
+                                        user, duration_i64
                                     ))
                                     .color(Colour::BLUE)
                             })

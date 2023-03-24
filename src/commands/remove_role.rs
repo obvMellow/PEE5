@@ -45,6 +45,36 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
         role = Some(role_id.to_owned());
     }
 
+    let roles = guild_id.member(&ctx.http, &member).await.unwrap().roles;
+
+    let does_have_role = roles.contains(&role.as_ref().unwrap().id);
+
+    if !does_have_role {
+        interaction
+            .create_interaction_response(&ctx.http, |response| {
+                response
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|message| {
+                        message.embed(|embed| {
+                            embed.title("Error");
+                            embed.description(format!(
+                                "{} does not have the role {}",
+                                member,
+                                role.as_ref().unwrap()
+                            ));
+                            embed.color(Colour::RED);
+
+                            embed
+                        });
+
+                        message
+                    })
+            })
+            .await?;
+
+        return Ok(());
+    }
+
     let remove_role = guild_id
         .member(&ctx.http, &member)
         .await
@@ -59,17 +89,16 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                     response
                         .kind(InteractionResponseType::ChannelMessageWithSource)
                         .interaction_response_data(|message| {
-                            message
-                                .embed(|embed| {
-                                    embed
-                                        .title("Role removed")
-                                        .description(format!(
-                                            "Removed role {} from {}",
-                                            role.unwrap(),
-                                            member
-                                        ))
-                                        .colour(Colour::DARK_RED)
-                                })
+                            message.embed(|embed| {
+                                embed
+                                    .title("Role removed")
+                                    .description(format!(
+                                        "Removed role {} from {}",
+                                        role.clone().unwrap(),
+                                        member
+                                    ))
+                                    .colour(Colour::BLITZ_BLUE)
+                            })
                         })
                 })
                 .await
@@ -81,13 +110,12 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                     response
                         .kind(InteractionResponseType::ChannelMessageWithSource)
                         .interaction_response_data(|message| {
-                            message
-                                .embed(|embed| {
-                                    embed
-                                        .title("Error")
-                                        .description("Failed to remove role")
-                                        .colour(Colour::RED)
-                                })
+                            message.embed(|embed| {
+                                embed
+                                    .title("Error")
+                                    .description("Failed to remove role")
+                                    .colour(Colour::RED)
+                            })
                         })
                 })
                 .await

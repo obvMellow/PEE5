@@ -45,6 +45,31 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
         role = Some(role_id.to_owned());
     }
 
+    let roles = guild_id.member(&ctx.http, &member).await.unwrap().roles;
+
+    for current_role in roles {
+        if current_role == role.as_ref().unwrap().id {
+            interaction
+                .create_interaction_response(&ctx.http, |response| {
+                    response
+                        .kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|message| {
+                            message.embed(|embed| {
+                                embed.title("Error");
+                                embed.description(format!(
+                                    "{} already has the role {}",
+                                    member,
+                                    role.unwrap()
+                                ));
+                                embed.color(Colour::RED)
+                            })
+                        })
+                })
+                .await?;
+            return Ok(());
+        }
+    }
+
     let add_role = guild_id
         .member(&ctx.http, &member)
         .await
@@ -67,7 +92,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                                         role.unwrap(),
                                         member
                                     ))
-                                    .color(Colour::ROHRKATZE_BLUE)
+                                    .color(Colour::BLITZ_BLUE)
                             })
                         })
                 })
