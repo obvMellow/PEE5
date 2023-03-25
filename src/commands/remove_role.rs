@@ -97,7 +97,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                                         role.clone().unwrap(),
                                         member
                                     ))
-                                    .colour(Colour::BLITZ_BLUE)
+                                    .colour(Colour::from_rgb(0, 255, 0))
                             })
                         })
                 })

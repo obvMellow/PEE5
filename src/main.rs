@@ -34,6 +34,8 @@ impl EventHandler for Handler {
                 "config" => commands::config::run(&ctx, &command).await,
                 "add_role" => commands::add_role::run(&ctx, &command).await,
                 "remove_role" => commands::remove_role::run(&ctx, &command).await,
+                "automod" => commands::automod::run(&ctx, &command).await,
+                "blacklist_word" => commands::blacklist_word::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -75,6 +77,16 @@ impl EventHandler for Handler {
             })
             .await
             .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::automod::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::blacklist_word::register(command)
+            })
+            .await
+            .unwrap(),
         ];
 
         // Create guild config files here
@@ -96,6 +108,9 @@ impl EventHandler for Handler {
                 file,
                 &serde_json::json!({
                     "id": guild.id,
+                    "users": {},
+                    "automod": false,
+                    "blacklisted_words": [],
                 }),
             )
             .unwrap();
@@ -129,27 +144,79 @@ impl EventHandler for Handler {
         let config_file = File::open(format!("guilds/{}.json", guild_id)).unwrap();
         let config: Value = serde_json::from_reader(config_file).unwrap();
 
-        let log_channel_id: u64 = config
+        let log_channel_id: Option<u64> = match config.as_object().unwrap().get("log_channel_id") {
+            Some(v) => Some(v.as_str().unwrap().parse().unwrap()),
+            None => None,
+        };
+
+        match log_channel_id {
+            Some(log_channel_id) => {
+                for channel in guild_id.channels(&ctx.http).await.unwrap() {
+                    if channel.0.as_u64().to_owned() == log_channel_id {
+                        ChannelId::from(log_channel_id)
+                            .send_message(&ctx.http, |message| {
+                                message.embed(|embed| {
+                                    embed
+                                        .title("Message sent")
+                                        .field("Sender", &msg.author, true)
+                                        .field("Channel", msg.channel_id.mention(), true)
+                                        .field("Content", &msg.content, false)
+                                        .color(Colour::from_rgb(102, 255, 102))
+                                })
+                            })
+                            .await
+                            .unwrap();
+                    }
+                }
+            }
+            None => {}
+        }
+
+        // Moderate the message here
+        if config
             .as_object()
             .unwrap()
-            .get("log_channel_id")
+            .get("automod")
             .unwrap()
-            .as_str()
+            .as_bool()
             .unwrap()
-            .parse()
-            .unwrap();
+        {
+            let blacklisted_words = config
+                .as_object()
+                .unwrap()
+                .get("blacklisted_words")
+                .unwrap()
+                .as_array()
+                .unwrap();
 
-        for channel in guild_id.channels(&ctx.http).await.unwrap() {
-            if channel.0.as_u64().to_owned() == log_channel_id {
-                ChannelId::from(log_channel_id)
+            let mut contained_words: Vec<String> = Vec::new();
+
+            for word in blacklisted_words {
+                if msg.content.contains(word.as_str().unwrap()) {
+                    contained_words.append(&mut vec![word.as_str().unwrap().to_string()]);
+                }
+            }
+
+            if !contained_words.is_empty() {
+                msg.delete(&ctx.http).await.unwrap();
+
+                msg.channel_id
                     .send_message(&ctx.http, |message| {
                         message.embed(|embed| {
                             embed
-                                .title("Message sent")
+                                .title("Message deleted")
                                 .field("Sender", &msg.author, true)
                                 .field("Channel", msg.channel_id.mention(), true)
                                 .field("Content", &msg.content, false)
-                                .color(Colour::from_rgb(102, 255, 102))
+                                .field(
+                                    "Reason",
+                                    format!(
+                                        "Message contained blacklisted words: {:#?}",
+                                        contained_words
+                                    ),
+                                    false,
+                                )
+                                .color(Colour::from_rgb(255, 102, 102))
                         })
                     })
                     .await
