@@ -36,6 +36,7 @@ impl EventHandler for Handler {
                 "remove_role" => commands::remove_role::run(&ctx, &command).await,
                 "automod" => commands::automod::run(&ctx, &command).await,
                 "blacklist_word" => commands::blacklist_word::run(&ctx, &command).await,
+                "xp" => commands::xp::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -84,6 +85,11 @@ impl EventHandler for Handler {
             .unwrap(),
             Command::create_global_application_command(&ctx.http, |command| {
                 commands::blacklist_word::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::xp::register(command)
             })
             .await
             .unwrap(),
@@ -138,12 +144,27 @@ impl EventHandler for Handler {
             return;
         }
 
-        // Do the logging here
+        // Add the message author to the config file if they aren't already
         let guild_id = msg.guild_id.unwrap();
 
         let config_file = File::open(format!("guilds/{}.json", guild_id)).unwrap();
-        let config: Value = serde_json::from_reader(config_file).unwrap();
+        let mut config: Value = serde_json::from_reader(&config_file).unwrap();
 
+        let users = config.as_object_mut().unwrap().get_mut("users").unwrap();
+
+        if users
+            .as_object()
+            .unwrap()
+            .get(&msg.author.id.to_string())
+            .is_none()
+        {
+            users
+                .as_object_mut()
+                .unwrap()
+                .insert(msg.author.id.to_string(), 0.into());
+        }
+
+        // Do the logging here
         let log_channel_id: Option<u64> = match config.as_object().unwrap().get("log_channel_id") {
             Some(v) => Some(v.as_str().unwrap().parse().unwrap()),
             None => None,
@@ -173,6 +194,8 @@ impl EventHandler for Handler {
         }
 
         // Moderate the message here
+        let mut deleted = false;
+
         if config
             .as_object()
             .unwrap()
@@ -221,8 +244,30 @@ impl EventHandler for Handler {
                     })
                     .await
                     .unwrap();
+
+                deleted = true;
             }
         }
+
+        // Give the user some xp here
+        if !deleted {
+            let users = config.as_object_mut().unwrap().get_mut("users").unwrap();
+
+            let xp_gain = 100;
+
+            let xp = users
+                .as_object_mut()
+                .unwrap()
+                .get_mut(&msg.author.id.to_string())
+                .unwrap();
+
+            *xp = (xp.as_u64().unwrap() + xp_gain).into();
+        }
+
+        // Save the config file here
+        let config_file = File::create(format!("guilds/{}.json", guild_id)).unwrap();
+
+        serde_json::to_writer_pretty(config_file, &config).unwrap();
     }
 }
 
