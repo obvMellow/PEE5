@@ -6,3 +6,4 @@ pub mod remove_role;
 pub mod automod;
 pub mod blacklist_word;
 pub mod xp;
+pub mod imagine;

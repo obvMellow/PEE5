@@ -37,6 +37,7 @@ impl EventHandler for Handler {
                 "automod" => commands::automod::run(&ctx, &command).await,
                 "blacklist_word" => commands::blacklist_word::run(&ctx, &command).await,
                 "xp" => commands::xp::run(&ctx, &command).await,
+                "imagine" => commands::imagine::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -90,6 +91,11 @@ impl EventHandler for Handler {
             .unwrap(),
             Command::create_global_application_command(&ctx.http, |command| {
                 commands::xp::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::imagine::register(command)
             })
             .await
             .unwrap(),

@@ -4,6 +4,7 @@ use std::fs::File;
 #[derive(Debug)]
 pub struct GlobalConfig {
     pub discord_token: String,
+    pub openai_key: String,
     pub json: Value,
 }
 
@@ -23,8 +24,17 @@ impl GlobalConfig {
             .as_str()
             .unwrap();
 
+        let openai_key = json
+            .as_object()
+            .unwrap()
+            .get("openai_key")
+            .unwrap()
+            .as_str()
+            .unwrap();
+
         Self {
             discord_token: discord_token.to_string(),
+            openai_key: openai_key.to_string(),
             json,
         }
     }
