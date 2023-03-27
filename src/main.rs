@@ -21,7 +21,7 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::ApplicationCommand(command) = interaction {
+        if let Interaction::ApplicationCommand(command) = &interaction {
             println!(
                 "{} {:#?}",
                 "Received Command Interaction:".green().bold(),
@@ -44,6 +44,27 @@ impl EventHandler for Handler {
             if let Err(why) = result {
                 eprintln!(
                     "{} An error occured on a slash command: {:?}",
+                    "Error".red().bold(),
+                    why
+                );
+            }
+        }
+
+        if let Interaction::MessageComponent(component) = &interaction {
+            println!(
+                "{} {:#?}",
+                "Received Component Interaction:".green().bold(),
+                component
+            );
+
+            let result: Result<()> = match component.data.custom_id.as_str() {
+                "imagine_retry" => commands::imagine::retry(&ctx, &component).await,
+                _ => Ok(()),
+            };
+
+            if let Err(why) = result {
+                eprintln!(
+                    "{} An error occured on a component: {:?}",
                     "Error".red().bold(),
                     why
                 );
