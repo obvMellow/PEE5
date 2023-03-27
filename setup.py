@@ -1,4 +1,6 @@
-import json, os
+import json
+import os
+
 
 def main():
     discord_token = input("Enter your discord bot token: ")
@@ -27,3 +29,7 @@ def main():
         print("Rust already installed!")
 
     print("Setup complete!")
+
+
+if __name__ == "__main__":
+    main()
