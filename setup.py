@@ -1,5 +1,6 @@
 import json
 import os
+from sys import platform
 
 
 def main():
@@ -22,9 +23,14 @@ def main():
     print("Downloading Rust if not already downloaded...")
 
     if os.system("cargo --version") != 0:
-        os.system("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
+        if platform == "linux":
+            os.system(
+                "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
+            print("Rust installed!")
 
-        print("Rust installed!")
+        elif platform == "win32":
+            print("Looks like you are running Windows. Please go to https://rustup.rs/# and install Rust manually.")
+
     else:
         print("Rust already installed!")
 
