@@ -15,7 +15,7 @@ The bot is not hosted yet. :(
 However you can still self host the bot
 
 #### Dependencies
--   [Cargo](https://www.rust-lang.org/tools/install)
+-   [Cargo (Automatically installed with setup script)](https://www.rust-lang.org/tools/install)
 -   [Python3 (Required for setup.py)](https://www.python.org/downloads/)
 
 #### Setting up
