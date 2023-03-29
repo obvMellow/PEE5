@@ -8,7 +8,7 @@ Completely free and open-source Discord bot that aims to be an alternative to ME
 
 ### Adding the bot the your server
 
-The bot is not hosted yet. :(
+You can add the bot using this [link](https://discord.com/api/oauth2/authorize?client_id=1087464844288069722&permissions=1495118638326&scope=bot)
 
 ### Self hosting
 
