@@ -19,6 +19,7 @@ def main():
 
     os.mkdir("tmp")
     os.mkdir("guilds")
+    os.mkdir("saved_imagines")
 
     print("Downloading Rust if not already downloaded...")
 

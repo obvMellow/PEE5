@@ -38,6 +38,7 @@ impl EventHandler for Handler {
                 "blacklist_word" => commands::blacklist_word::run(&ctx, &command).await,
                 "xp" => commands::xp::run(&ctx, &command).await,
                 "imagine" => commands::imagine::run(&ctx, &command).await,
+                "saved_imagines" => commands::saved_imagines::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -59,6 +60,7 @@ impl EventHandler for Handler {
 
             let result: Result<()> = match component.data.custom_id.as_str() {
                 "imagine_retry" => commands::imagine::retry(&ctx, &component).await,
+                "imagine_save" => commands::imagine::save(&ctx, &component).await,
                 _ => Ok(()),
             };
 
@@ -117,6 +119,11 @@ impl EventHandler for Handler {
             .unwrap(),
             Command::create_global_application_command(&ctx.http, |command| {
                 commands::imagine::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::saved_imagines::register(command)
             })
             .await
             .unwrap(),

@@ -9,21 +9,26 @@ use crate::Result;
 use openai_gpt_rs::{
     args::{ImageArgs, ImageResponseFormat, ImageSize},
     client::Client,
+    response::Content,
 };
+use rand::{distributions::Alphanumeric, Rng};
+use reqwest::Url;
 use serde_json::Value;
 use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::prelude::{
     command::CommandOptionType, interaction::message_component::MessageComponentInteraction,
 };
-use serenity::{
-    builder::{CreateApplicationCommand, CreateButton},
-    model::prelude::component::ButtonStyle,
-};
+use serenity::{builder::CreateApplicationCommand, model::prelude::component::ButtonStyle};
 
 use serenity::model::Timestamp;
 use serenity::prelude::Context;
 use serenity::utils::Colour;
+
+const RESPONSE_DESCRIPTION: &str =
+    "Here is your image!\n\n**Images are deleted after 24 hours unless saved.**";
+
+const SAVE_DESCRIPTION: &str = "Here is your image!\n\n**Image is saved!**";
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
     let _prompt = interaction
@@ -64,27 +69,32 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
     let url = _generate(&client, &args).await;
 
     interaction
-        .create_followup_message(&ctx.http, |response| {
+        .edit_original_interaction_response(&ctx.http, |response| {
             response.embed(|embed| {
                 embed.title("Imagine");
-                embed.description("Here is your image!");
+                embed.description(RESPONSE_DESCRIPTION);
                 embed.color(Colour::from_rgb(0, 255, 0));
                 embed.timestamp(&Timestamp::now());
 
-                embed.image(url);
+                embed.image(&url);
 
                 embed
             });
 
             response.components(|component| {
                 component.create_action_row(|row| {
-                    row.add_button(
-                        CreateButton::default()
+                    row.create_button(|button| {
+                        button
                             .label("Retry")
                             .style(ButtonStyle::Primary)
                             .custom_id("imagine_retry")
-                            .to_owned(),
-                    )
+                    })
+                    .create_button(|button| {
+                        button
+                            .custom_id("imagine_save")
+                            .style(ButtonStyle::Secondary)
+                            .label("Save")
+                    })
                 })
             });
 
@@ -99,7 +109,9 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
         interaction.user.id,
     );
     let mut tmp_file = File::create(tmp_name).unwrap();
-    tmp_file.write_all(_prompt.as_bytes()).unwrap();
+    tmp_file
+        .write_all(format!("{}\n{}", _prompt, url).as_bytes())
+        .unwrap();
 
     Ok(())
 }
@@ -112,6 +124,8 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
         component.user.id,
     ))
     .unwrap();
+
+    let prompt = prompt.split("\n").collect::<Vec<&str>>()[0];
 
     let key = GlobalConfig::load("config.json").openai_key;
 
@@ -155,24 +169,124 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
         .edit_original_interaction_response(&ctx.http, |response| {
             response.embed(|embed| {
                 embed.title("Imagine");
-                embed.description("Here is your image!");
+                embed.description(RESPONSE_DESCRIPTION);
                 embed.color(Colour::from_rgb(0, 255, 0));
                 embed.timestamp(&Timestamp::now());
 
-                embed.image(url);
+                embed.image(&url);
 
                 embed
             });
 
             response.components(|component| {
                 component.create_action_row(|row| {
-                    row.add_button(
-                        CreateButton::default()
+                    row.create_button(|button| {
+                        button
                             .label("Retry")
                             .style(ButtonStyle::Primary)
                             .custom_id("imagine_retry")
-                            .to_owned(),
-                    )
+                    })
+                    .create_button(|button| {
+                        button
+                            .custom_id("imagine_save")
+                            .style(ButtonStyle::Secondary)
+                            .label("Save")
+                    })
+                })
+            });
+
+            response
+        })
+        .await?;
+
+    let tmp_name = format!(
+        "tmp/{}:{}:{}",
+        component.guild_id.unwrap(),
+        component.channel_id,
+        component.user.id,
+    );
+    let mut tmp_file = File::create(tmp_name).unwrap();
+    tmp_file
+        .write_all(format!("{}\n{}", prompt, url).as_bytes())
+        .unwrap();
+
+    Ok(())
+}
+
+pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Result<()> {
+    let name = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(30)
+        .map(char::from)
+        .collect::<String>();
+
+    let url = fs::read_to_string(format!(
+        "tmp/{}:{}:{}",
+        component.guild_id.unwrap(),
+        component.channel_id,
+        component.user.id,
+    ))
+    .unwrap();
+
+    let url = url.split("\n").collect::<Vec<&str>>()[1];
+
+    let user_id = component.user.id;
+
+    component
+        .create_interaction_response(&ctx.http, |response| {
+            response
+                .kind(InteractionResponseType::DeferredUpdateMessage)
+                .interaction_response_data(|message| {
+                    message.content("Saving image...");
+                    message
+                })
+        })
+        .await
+        .unwrap();
+
+    let client = reqwest::Client::new();
+
+    dbg!(&url);
+
+    let url = Url::parse(url).unwrap();
+
+    let image = client
+        .get(url.clone())
+        .send()
+        .await
+        .unwrap()
+        .bytes()
+        .await
+        .unwrap()
+        .to_vec();
+
+    fs::create_dir_all(format!("saved_imagines/{}", user_id)).unwrap();
+
+    let mut file = File::create(format!("saved_imagines/{}/{}.png", user_id, name)).unwrap();
+
+    file.write_all(&image).unwrap();
+
+    component
+        .edit_original_interaction_response(&ctx.http, |response| {
+            response.embed(|embed| {
+                embed.title("Imagine");
+                embed.description(SAVE_DESCRIPTION);
+                embed.color(Colour::from_rgb(0, 255, 0));
+                embed.timestamp(&Timestamp::now());
+
+                embed.image(&url);
+
+                embed
+            });
+
+            response.components(|component| {
+                component.create_action_row(|row| {
+                    row.create_button(|button| {
+                        button
+                            .label("Retry")
+                            .style(ButtonStyle::Primary)
+                            .custom_id("imagine_retry")
+                    })
                 })
             });
 
@@ -186,7 +300,9 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
 async fn _generate(client: &Client, args: &ImageArgs) -> String {
     let resp = client.create_image(&args).await.unwrap();
 
-    let json: Value = resp.resp.json().await.unwrap();
+    dbg!(&resp);
+
+    let json: Value = resp.get_json().await.unwrap();
 
     let url = json
         .as_object()

@@ -7,3 +7,4 @@ pub mod automod;
 pub mod blacklist_word;
 pub mod xp;
 pub mod imagine;
+pub mod saved_imagines;
