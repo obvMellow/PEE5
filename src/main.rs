@@ -50,6 +50,18 @@ impl EventHandler for Handler {
                     "Error".red().bold(),
                     why
                 );
+
+                command
+                    .create_followup_message(&ctx.http, |message| {
+                        message.embed(|embed| {
+                            embed
+                                .title("Error")
+                                .field("Error Message", why, false)
+                                .color(Colour::RED)
+                        })
+                    })
+                    .await
+                    .unwrap();
             }
         }
 
