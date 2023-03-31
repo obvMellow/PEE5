@@ -9,3 +9,4 @@ pub mod xp;
 pub mod imagine;
 pub mod saved_imagines;
 pub mod avatar;
+pub mod ask_gpt;

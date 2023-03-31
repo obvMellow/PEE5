@@ -40,6 +40,7 @@ impl EventHandler for Handler {
                 "imagine" => commands::imagine::run(&ctx, &command).await,
                 "saved_imagines" => commands::saved_imagines::run(&ctx, &command).await,
                 "avatar" => commands::avatar::run(&ctx, &command).await,
+                "ask_gpt" => commands::ask_gpt::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -130,6 +131,11 @@ impl EventHandler for Handler {
             .unwrap(),
             Command::create_global_application_command(&ctx.http, |command| {
                 commands::avatar::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::ask_gpt::register(command)
             })
             .await
             .unwrap(),
