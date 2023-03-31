@@ -10,7 +10,7 @@ use serenity::async_trait;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
-use serenity::model::prelude::{ChannelId, Message};
+use serenity::model::prelude::{ChannelId, Guild, Message};
 use serenity::prelude::*;
 use serenity::utils::Colour;
 
@@ -326,6 +326,30 @@ impl EventHandler for Handler {
         let config_file = File::create(format!("guilds/{}.json", guild_id)).unwrap();
 
         serde_json::to_writer_pretty(config_file, &config).unwrap();
+    }
+
+    async fn guild_create(&self, _ctx: Context, guild: Guild) {
+        let config_file = format!("guilds/{}.json", guild.id);
+
+        if path_exists(&config_file) {
+            return;
+        }
+
+        let file = match File::create(config_file) {
+            Ok(v) => v,
+            Err(e) => panic!("Error creating config file: {}", e),
+        };
+
+        serde_json::to_writer_pretty(
+            file,
+            &serde_json::json!({
+                "id": guild.id,
+                "users": {},
+                "automod": false,
+                "blacklisted_words": [],
+            }),
+        )
+        .unwrap();
     }
 }
 
