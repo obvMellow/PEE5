@@ -60,7 +60,7 @@ pub async fn run<'a>(ctx: &Context, interaction: &ApplicationCommandInteraction)
     let thread = interaction
         .channel_id
         .create_public_thread(&ctx.http, resp, |thread| {
-            thread.name("Saved Imagines");
+            thread.name(format!("{}'s saved imagines", interaction.user));
             thread
         })
         .await?;
