@@ -247,6 +247,7 @@ impl EventHandler for Handler {
                                         .field("Channel", msg.channel_id.mention(), true)
                                         .field("Content", &msg.content, false)
                                         .color(Colour::from_rgb(102, 255, 102))
+                                        .timestamp(&msg.timestamp)
                                 })
                             })
                             .await
