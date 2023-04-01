@@ -1,4 +1,7 @@
+use std::fs::File;
+
 use crate::Result;
+use serde_json::Value;
 use serenity::{
     builder::CreateApplicationCommand,
     model::prelude::{
@@ -34,23 +37,34 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
             })
             .await?;
 
-        let new_nick = format!(
-            "[AFK] {}",
-            interaction
-                .member
-                .clone()
-                .unwrap()
-                .nick
-                .unwrap_or(interaction.user.name.clone())
-                .to_string(),
-        );
+        let config_file = format!("guilds/{}.json", interaction.guild_id.unwrap());
 
-        interaction
-            .member
-            .clone()
+        let config_file = match File::open(config_file) {
+            Ok(v) => v,
+            Err(e) => panic!("Error creating config file: {}", e),
+        };
+
+        let mut config: Value = serde_json::from_reader(config_file).unwrap();
+        let config = config.as_object_mut().unwrap();
+
+        config
+            .get_mut("afk")
             .unwrap()
-            .edit(&ctx.http, |edit| edit.nickname(new_nick))
-            .await?;
+            .as_object_mut()
+            .unwrap()
+            .insert(
+                interaction.user.id.to_string(),
+                serde_json::json!({
+                    "id": interaction.user.id,
+                    "reason": reason,
+                }),
+            );
+
+        serde_json::to_writer_pretty(
+            File::create(format!("guilds/{}.json", interaction.guild_id.unwrap())).unwrap(),
+            &config,
+        )
+        .unwrap();
 
         interaction
             .edit_original_interaction_response(&ctx.http, |response| {
