@@ -11,7 +11,7 @@ use serenity::async_trait;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
-use serenity::model::prelude::{ChannelId, Guild, Message};
+use serenity::model::prelude::{Activity, ChannelId, Guild, Message};
 use serenity::prelude::*;
 use serenity::utils::Colour;
 
@@ -199,6 +199,8 @@ impl EventHandler for Handler {
                 guild.id
             );
         }
+
+        ctx.set_activity(Activity::playing("/help")).await;
 
         println!(
             "{} Registered commands: {:#?}, Connected to {}",
