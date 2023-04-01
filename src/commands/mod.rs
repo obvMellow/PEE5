@@ -11,3 +11,4 @@ pub mod saved_imagines;
 pub mod avatar;
 pub mod ask_gpt;
 pub mod help;
+pub mod afk;
