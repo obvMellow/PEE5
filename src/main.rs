@@ -260,14 +260,15 @@ impl EventHandler for Handler {
         // Moderate the message here
         let mut deleted = false;
 
-        if config
+        let automod = config
             .as_object()
             .unwrap()
             .get("automod")
             .unwrap()
             .as_bool()
-            .unwrap()
-        {
+            .unwrap();
+
+        if automod {
             let blacklisted_words = config
                 .as_object()
                 .unwrap()
@@ -291,18 +292,10 @@ impl EventHandler for Handler {
                     .send_message(&ctx.http, |message| {
                         message.embed(|embed| {
                             embed
-                                .title("Message deleted")
-                                .field("Sender", &msg.author, true)
-                                .field("Channel", msg.channel_id.mention(), true)
-                                .field("Content", &msg.content, false)
-                                .field(
-                                    "Reason",
-                                    format!(
-                                        "Message contained blacklisted words: {:#?}",
-                                        contained_words
-                                    ),
-                                    false,
-                                )
+                                .description(format!(
+                                    "{} Watch your language!",
+                                    msg.author.mention()
+                                ))
                                 .color(Colour::from_rgb(255, 102, 102))
                         })
                     })
