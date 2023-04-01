@@ -2,6 +2,7 @@ mod commands;
 mod global_config;
 
 use std::fs::{self, File};
+use std::time::Duration;
 
 use colored::Colorize;
 use global_config::GlobalConfig;
@@ -295,7 +296,8 @@ impl EventHandler for Handler {
             if !contained_words.is_empty() {
                 msg.delete(&ctx.http).await.unwrap();
 
-                msg.channel_id
+                let msg = msg
+                    .channel_id
                     .send_message(&ctx.http, |message| {
                         message.embed(|embed| {
                             embed
@@ -310,6 +312,10 @@ impl EventHandler for Handler {
                     .unwrap();
 
                 deleted = true;
+
+                tokio::time::sleep(Duration::from_secs(5)).await;
+
+                msg.delete(&ctx.http).await.unwrap();
             }
         }
 
