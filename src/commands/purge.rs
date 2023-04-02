@@ -69,6 +69,8 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
             option
                 .name("amount")
                 .description("The amount of messages to purge")
+                .min_int_value(2)
+                .max_int_value(100)
                 .kind(CommandOptionType::Integer)
                 .required(true)
         })
