@@ -22,6 +22,7 @@ const REMOVE_ROLE: &str = "Remove a role from a user.";
 const TIMEOUT: &str = "Timeout a user for a certain time.";
 const XP: &str = "Display your XP.";
 const CONFIG: &str = "Configure the bot.";
+const PURGE: &str = "Deletes certain amount of messages.";
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
     interaction
@@ -45,6 +46,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                             .field("/timeout", TIMEOUT, true)
                             .field("/xp", XP, true)
                             .field("/config", CONFIG, true)
+                            .field("/purge", PURGE, true)
                             .color(Colour::from_rgb(0, 255, 0))
                     })
                 })
