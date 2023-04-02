@@ -1,4 +1,5 @@
 use crate::Result;
+use serde_json::Value;
 use serenity::{
     builder::CreateApplicationCommand,
     model::prelude::{
@@ -24,6 +25,34 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
         .unwrap();
 
     if let CommandDataOptionValue::User(user, _) = _user {
+        let server = match interaction
+            .data
+            .options
+            .iter()
+            .find(|option| option.name == "server")
+        {
+            Some(v) => v
+                .value
+                .as_ref()
+                .unwrap_or_else(|| &Value::Bool(true))
+                .as_bool()
+                .unwrap(),
+            None => true,
+        };
+
+        let mut url = user.face();
+
+        if server {
+            url = interaction
+                .guild_id
+                .unwrap()
+                .member(&ctx.http, user)
+                .await
+                .unwrap()
+                .avatar_url()
+                .unwrap_or_else(|| user.face());
+        }
+
         interaction
             .create_interaction_response(&ctx.http, |response| {
                 response
@@ -32,7 +61,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                         message.embed(|embed| {
                             embed
                                 .title(format!("Here is {}'s avatar", user.name))
-                                .image(user.face())
+                                .image(url)
                                 .color(Colour::from_rgb(0, 255, 0))
                         });
                         message
@@ -54,5 +83,12 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .description("The user to get the avatar of")
                 .kind(CommandOptionType::User)
                 .required(true)
+        })
+        .create_option(|option| {
+            option
+                .name("server")
+                .description("Whether to get the avatar from the server or not")
+                .kind(CommandOptionType::Boolean)
+                .required(false)
         })
 }
