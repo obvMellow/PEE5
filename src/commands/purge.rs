@@ -1,5 +1,6 @@
 use crate::Result;
 use serenity::model::application::interaction::MessageFlags;
+use serenity::model::permissions::Permissions;
 use serenity::{
     builder::CreateApplicationCommand,
     model::prelude::{
@@ -74,4 +75,5 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .kind(CommandOptionType::Integer)
                 .required(true)
         })
+        .default_member_permissions(Permissions::MANAGE_MESSAGES)
 }

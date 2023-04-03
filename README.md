@@ -2,7 +2,7 @@
 
 **Disclaimer:** This bot is still in heavy development
 
-Completely free and open-source Discord bot that aims to be an alternative to MEE6
+Completely free and open-source, *blazingly fast* Discord bot that aims to be an alternative to MEE6
 
 ## Usage
 
@@ -12,7 +12,7 @@ You can add the bot using this [link](https://discord.com/api/oauth2/authorize?c
 
 ### Self hosting
 
-However you can still self host the bot
+Also you can self host the bot.
 
 #### Dependencies
 -   [Cargo (Automatically installed with setup script)](https://www.rust-lang.org/tools/install)
