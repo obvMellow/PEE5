@@ -13,7 +13,6 @@ use openai_gpt_rs::{
 };
 use rand::{distributions::Alphanumeric, Rng};
 use reqwest::Url;
-use serde_json::Value;
 use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::prelude::{
@@ -47,13 +46,6 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
 
     let client = Client::new(&key);
 
-    let args = ImageArgs::new(
-        _prompt,
-        Some(1),
-        Some(ImageSize::Big),
-        Some(ImageResponseFormat::Url),
-    );
-
     interaction
         .create_interaction_response(&ctx.http, |response| {
             response
@@ -66,7 +58,13 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
         .await
         .unwrap();
 
-    let url = _generate(&client, &args).await;
+    let url = _generate(&client, |args| {
+        args.prompt(_prompt)
+            .n(1)
+            .size(ImageSize::Big)
+            .response_format(ImageResponseFormat::Url)
+    })
+    .await;
 
     interaction
         .edit_original_interaction_response(&ctx.http, |response| {
@@ -131,13 +129,6 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
 
     let client = Client::new(&key);
 
-    let args = ImageArgs::new(
-        &prompt,
-        Some(1),
-        Some(ImageSize::Big),
-        Some(ImageResponseFormat::Url),
-    );
-
     component
         .create_interaction_response(&ctx.http, |response| {
             response
@@ -163,7 +154,13 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
         })
         .await?;
 
-    let url = _generate(&client, &args).await;
+    let url = _generate(&client, |args| {
+        args.prompt(prompt)
+            .n(1)
+            .size(ImageSize::Big)
+            .response_format(ImageResponseFormat::Url)
+    })
+    .await;
 
     component
         .edit_original_interaction_response(&ctx.http, |response| {
@@ -297,28 +294,15 @@ pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Res
     Ok(())
 }
 
-async fn _generate(client: &Client, args: &ImageArgs) -> String {
-    let resp = client.create_image(&args).await.unwrap();
+async fn _generate<T>(client: &Client, args: T) -> String
+where
+    T: FnOnce(&mut ImageArgs) -> &mut ImageArgs,
+{
+    let resp = client.create_image(args).await.unwrap();
 
     dbg!(&resp);
 
-    let json: Value = resp.get_json().await.unwrap();
-
-    let url = json
-        .as_object()
-        .unwrap()
-        .get("data")
-        .unwrap()
-        .as_array()
-        .unwrap()[0]
-        .as_object()
-        .unwrap()
-        .get("url")
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .to_string();
-    url
+    resp.get_content(0).await.unwrap()
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {

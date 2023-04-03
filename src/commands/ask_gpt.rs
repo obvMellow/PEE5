@@ -1,6 +1,6 @@
 use crate::global_config::GlobalConfig;
 use crate::Result;
-use openai_gpt_rs::{args::ChatArgs, client::Client, response::Content};
+use openai_gpt_rs::{client::Client, response::Content};
 use serenity::{
     builder::CreateApplicationCommand,
     model::prelude::{
@@ -47,36 +47,14 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
 
         messages.push(message);
 
-        let args = ChatArgs::new(messages, Some(2048), Some(1), None, None, None, None);
-        let content = client
-            .create_chat_completion(&args)
-            .await
-            .unwrap()
-            .get_json()
+        let resp = client
+            .create_chat_completion(|args| args.messages(messages).max_tokens(2048).n(1))
             .await
             .unwrap();
 
-        dbg!(&content);
+        let content = resp.get_content(0).await.unwrap();
 
-        let content = content
-            .as_object()
-            .unwrap()
-            .get("choices")
-            .unwrap()
-            .as_array()
-            .unwrap()
-            .get(0)
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .get("message")
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .get("content")
-            .unwrap()
-            .as_str()
-            .unwrap();
+        dbg!(&resp.json);
 
         interaction
             .edit_original_interaction_response(&ctx.http, |response| {

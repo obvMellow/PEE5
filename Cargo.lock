@@ -670,9 +670,9 @@ checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
 name = "openai_gpt_rs"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7cee646670a7bffba629888d23aa249ab4da56fa07d26483f32791678a3a73e"
+checksum = "a1600e2b63904651dd2a314aebedb91cbf0e66434975f2c7e515492fa274e401"
 dependencies = [
  "async-trait",
  "reqwest",
