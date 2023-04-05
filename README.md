@@ -8,7 +8,7 @@ Completely free and open-source, *blazingly fast* Discord bot that aims to be an
 
 ### Adding the bot the your server
 
-You can add the bot using this [link](https://discord.com/api/oauth2/authorize?client_id=1087464844288069722&permissions=1495118638326&scope=bot)
+You can add the bot using this [link](https://top.gg/bot/1087464844288069722?s=051495d9e370e)
 
 ### Self hosting
 
