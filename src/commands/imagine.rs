@@ -66,7 +66,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
     })
     .await;
 
-    interaction
+    let msg = interaction
         .edit_original_interaction_response(&ctx.http, |response| {
             response.embed(|embed| {
                 embed.title("Imagine");
@@ -101,10 +101,11 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
         .await?;
 
     let tmp_name = format!(
-        "tmp/{}:{}:{}",
+        "tmp/{}:{}:{}:{}",
         interaction.guild_id.unwrap(),
         interaction.channel_id,
         interaction.user.id,
+        msg.id,
     );
     let mut tmp_file = File::create(tmp_name).unwrap();
     tmp_file
@@ -116,10 +117,11 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
 
 pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Result<()> {
     let prompt = fs::read_to_string(format!(
-        "tmp/{}:{}:{}",
+        "tmp/{}:{}:{}:{}",
         component.guild_id.unwrap(),
         component.channel_id,
         component.user.id,
+        component.message.id,
     ))
     .unwrap();
 
