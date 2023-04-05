@@ -11,6 +11,7 @@ use serenity::{
         },
     },
     prelude::Context,
+    utils::Colour,
 };
 use std::collections::HashMap;
 
@@ -58,8 +59,12 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
 
         interaction
             .edit_original_interaction_response(&ctx.http, |response| {
-                response.content(content);
-                response
+                response.embed(|embed| {
+                    embed
+                        .title(format!(r"\> {}", question))
+                        .description(format!("```{}```", content))
+                        .colour(Colour::from_rgb(69, 69, 69))
+                })
             })
             .await?;
     }
