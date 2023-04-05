@@ -68,7 +68,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                     .kind(InteractionResponseType::ChannelMessageWithSource)
                     .interaction_response_data(|data| {
                         data.embed(|embed| {
-                            embed.title("Warned user");
+                            embed.title(format!("Warned {}", user.tag()));
                             embed.field("Reason", reason, true);
                             embed.colour(Colour::BLUE);
                             embed
