@@ -45,6 +45,8 @@ impl EventHandler for Handler {
                 "help" => commands::help::run(&ctx, &command).await,
                 "afk" => commands::afk::run(&ctx, &command).await,
                 "purge" => commands::purge::run(&ctx, &command).await,
+                "warn" => commands::warn::run(&ctx, &command).await,
+                "warns" => commands::warns::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -167,6 +169,16 @@ impl EventHandler for Handler {
             .unwrap(),
             Command::create_global_application_command(&ctx.http, |command| {
                 commands::purge::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::warn::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::warns::register(command)
             })
             .await
             .unwrap(),
