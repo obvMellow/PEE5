@@ -5,6 +5,7 @@ use std::{
 
 use crate::global_config::GlobalConfig;
 use crate::Result;
+use std::result::Result as StdResult;
 
 use openai_gpt_rs::{
     args::{ImageArgs, ImageResponseFormat, ImageSize},
@@ -28,6 +29,10 @@ const RESPONSE_DESCRIPTION: &str =
     "Here is your image!\n\n**Images are deleted after 24 hours unless saved.**";
 
 const SAVE_DESCRIPTION: &str = "Here is your image!\n\n**Image is saved!**";
+
+struct Error {
+    message: String,
+}
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
     let _prompt = interaction
@@ -66,51 +71,71 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
     })
     .await;
 
-    let msg = interaction
-        .edit_original_interaction_response(&ctx.http, |response| {
-            response.embed(|embed| {
-                embed.title("Imagine");
-                embed.description(RESPONSE_DESCRIPTION);
-                embed.color(Colour::from_rgb(0, 255, 0));
-                embed.timestamp(&Timestamp::now());
+    match url {
+        Ok(url) => {
+            let msg = interaction
+                .edit_original_interaction_response(&ctx.http, |response| {
+                    response.embed(|embed| {
+                        embed.title("Imagine");
+                        embed.description(RESPONSE_DESCRIPTION);
+                        embed.color(Colour::from_rgb(0, 255, 0));
+                        embed.timestamp(&Timestamp::now());
 
-                embed.image(&url);
+                        embed.image(&url);
 
-                embed
-            });
+                        embed
+                    });
 
-            response.components(|component| {
-                component.create_action_row(|row| {
-                    row.create_button(|button| {
-                        button
-                            .label("Retry")
-                            .style(ButtonStyle::Primary)
-                            .custom_id("imagine_retry")
-                    })
-                    .create_button(|button| {
-                        button
-                            .custom_id("imagine_save")
-                            .style(ButtonStyle::Secondary)
-                            .label("Save")
-                    })
+                    response.components(|component| {
+                        component.create_action_row(|row| {
+                            row.create_button(|button| {
+                                button
+                                    .label("Retry")
+                                    .style(ButtonStyle::Primary)
+                                    .custom_id("imagine_retry")
+                            })
+                            .create_button(|button| {
+                                button
+                                    .custom_id("imagine_save")
+                                    .style(ButtonStyle::Secondary)
+                                    .label("Save")
+                            })
+                        })
+                    });
+
+                    response
                 })
-            });
+                .await?;
 
-            response
-        })
-        .await?;
+            let tmp_name = format!(
+                "tmp/{}:{}:{}:{}",
+                interaction.guild_id.unwrap(),
+                interaction.channel_id,
+                interaction.user.id,
+                msg.id,
+            );
+            let mut tmp_file = File::create(tmp_name).unwrap();
+            tmp_file
+                .write_all(format!("{}\n{}", _prompt, url).as_bytes())
+                .unwrap();
+        }
+        Err(error) => {
+            interaction
+                .edit_original_interaction_response(&ctx.http, |response| {
+                    response.embed(|embed| {
+                        embed.title("Imagine");
+                        embed.description(error.message);
+                        embed.color(Colour::from_rgb(255, 0, 0));
+                        embed.timestamp(&Timestamp::now());
 
-    let tmp_name = format!(
-        "tmp/{}:{}:{}:{}",
-        interaction.guild_id.unwrap(),
-        interaction.channel_id,
-        interaction.user.id,
-        msg.id,
-    );
-    let mut tmp_file = File::create(tmp_name).unwrap();
-    tmp_file
-        .write_all(format!("{}\n{}", _prompt, url).as_bytes())
-        .unwrap();
+                        embed
+                    });
+
+                    response
+                })
+                .await?;
+        }
+    }
 
     Ok(())
 }
@@ -164,50 +189,70 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
     })
     .await;
 
-    component
-        .edit_original_interaction_response(&ctx.http, |response| {
-            response.embed(|embed| {
-                embed.title("Imagine");
-                embed.description(RESPONSE_DESCRIPTION);
-                embed.color(Colour::from_rgb(0, 255, 0));
-                embed.timestamp(&Timestamp::now());
+    match url {
+        Ok(url) => {
+            component
+                .edit_original_interaction_response(&ctx.http, |response| {
+                    response.embed(|embed| {
+                        embed.title("Imagine");
+                        embed.description(RESPONSE_DESCRIPTION);
+                        embed.color(Colour::from_rgb(0, 255, 0));
+                        embed.timestamp(&Timestamp::now());
 
-                embed.image(&url);
+                        embed.image(&url);
 
-                embed
-            });
+                        embed
+                    });
 
-            response.components(|component| {
-                component.create_action_row(|row| {
-                    row.create_button(|button| {
-                        button
-                            .label("Retry")
-                            .style(ButtonStyle::Primary)
-                            .custom_id("imagine_retry")
-                    })
-                    .create_button(|button| {
-                        button
-                            .custom_id("imagine_save")
-                            .style(ButtonStyle::Secondary)
-                            .label("Save")
-                    })
+                    response.components(|component| {
+                        component.create_action_row(|row| {
+                            row.create_button(|button| {
+                                button
+                                    .label("Retry")
+                                    .style(ButtonStyle::Primary)
+                                    .custom_id("imagine_retry")
+                            })
+                            .create_button(|button| {
+                                button
+                                    .custom_id("imagine_save")
+                                    .style(ButtonStyle::Secondary)
+                                    .label("Save")
+                            })
+                        })
+                    });
+
+                    response
                 })
-            });
+                .await?;
 
-            response
-        })
-        .await?;
+            let tmp_name = format!(
+                "tmp/{}:{}:{}",
+                component.guild_id.unwrap(),
+                component.channel_id,
+                component.user.id,
+            );
+            let mut tmp_file = File::create(tmp_name).unwrap();
+            tmp_file
+                .write_all(format!("{}\n{}", prompt, url).as_bytes())
+                .unwrap();
+        }
+        Err(error) => {
+            component
+                .edit_original_interaction_response(&ctx.http, |response| {
+                    response.embed(|embed| {
+                        embed.title("Imagine");
+                        embed.description(error.message);
+                        embed.color(Colour::from_rgb(255, 0, 0));
+                        embed.timestamp(&Timestamp::now());
 
-    let tmp_name = format!(
-        "tmp/{}:{}:{}",
-        component.guild_id.unwrap(),
-        component.channel_id,
-        component.user.id,
-    );
-    let mut tmp_file = File::create(tmp_name).unwrap();
-    tmp_file
-        .write_all(format!("{}\n{}", prompt, url).as_bytes())
-        .unwrap();
+                        embed
+                    });
+
+                    response
+                })
+                .await?;
+        }
+    }
 
     Ok(())
 }
@@ -296,7 +341,7 @@ pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Res
     Ok(())
 }
 
-async fn _generate<T>(client: &Client, args: T) -> String
+async fn _generate<T>(client: &Client, args: T) -> StdResult<String, Error>
 where
     T: FnOnce(&mut ImageArgs) -> &mut ImageArgs,
 {
@@ -304,7 +349,22 @@ where
 
     dbg!(&resp);
 
-    resp.get_content(0).await.unwrap()
+    match resp.json.as_object().unwrap().get("error") {
+        Some(error) => {
+            let error = error
+                .as_object()
+                .unwrap()
+                .get("message")
+                .unwrap()
+                .as_str()
+                .unwrap();
+
+            Err(Error {
+                message: error.to_string(),
+            })
+        }
+        None => Ok(resp.get_content(0).await.unwrap()),
+    }
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
