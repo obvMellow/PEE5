@@ -30,8 +30,8 @@ const RESPONSE_DESCRIPTION: &str =
 
 const SAVE_DESCRIPTION: &str = "Here is your image!\n\n**Image is saved!**";
 
-struct Error {
-    message: String,
+pub struct Error {
+    pub message: String,
 }
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {

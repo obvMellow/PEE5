@@ -4,6 +4,7 @@ pub mod ask_gpt;
 pub mod automod;
 pub mod avatar;
 pub mod blacklist_word;
+pub mod chat;
 pub mod config;
 pub mod echo;
 pub mod help;

@@ -1,11 +1,14 @@
 mod commands;
 mod global_config;
 
+use std::collections::HashMap;
 use std::fs::{self, File};
 use std::time::Duration;
 
 use colored::Colorize;
 use global_config::GlobalConfig;
+use openai_gpt_rs::client::Client as OpenAIClient;
+use openai_gpt_rs::response::Content;
 use serde_json::Value;
 use serenity::async_trait;
 use serenity::model::application::command::Command;
@@ -16,6 +19,8 @@ use serenity::prelude::*;
 use serenity::utils::Colour;
 
 pub type Result<T> = std::result::Result<T, SerenityError>;
+
+const CHAT_PATH: &str = "guilds/chats";
 
 struct Handler;
 
@@ -47,6 +52,7 @@ impl EventHandler for Handler {
                 "purge" => commands::purge::run(&ctx, &command).await,
                 "warn" => commands::warn::run(&ctx, &command).await,
                 "warns" => commands::warns::run(&ctx, &command).await,
+                "chat" => commands::chat::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -179,6 +185,11 @@ impl EventHandler for Handler {
             .unwrap(),
             Command::create_global_application_command(&ctx.http, |command| {
                 commands::warns::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::chat::register(command)
             })
             .await
             .unwrap(),
@@ -360,7 +371,7 @@ impl EventHandler for Handler {
             // Check if the message mentions a user who is afk
             let afk = config.as_object_mut().unwrap().get_mut("afk").unwrap();
 
-            for mention in msg.mentions {
+            for mention in &msg.mentions {
                 if afk
                     .as_object()
                     .unwrap()
@@ -421,6 +432,68 @@ impl EventHandler for Handler {
                     })
                     .await
                     .unwrap();
+            }
+
+            // Reply if the message is sent in a chat
+            let chats = std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()))
+                .unwrap();
+
+            dbg!(&chats);
+
+            if chats.contains(&msg.channel_id.to_string()) {
+                let channel = msg.channel_id;
+
+                let mut context_msg = channel
+                    .messages(&ctx.http, |builder| builder.limit(100))
+                    .await
+                    .unwrap();
+
+                context_msg.reverse();
+
+                let mut context = String::new();
+
+                for msg in context_msg {
+                    context.push_str(
+                        format!("Author: {}\nContent: {} \n", msg.author.name, msg.content)
+                            .as_str(),
+                    );
+                }
+
+                let mut context_msg = HashMap::new();
+                context_msg.insert("role".to_string(), "assistant".to_string());
+                context_msg.insert("content".to_string(), context);
+
+                let mut user_msg = HashMap::new();
+                user_msg.insert("role".to_string(), "user".to_string());
+                user_msg.insert("content".to_string(), msg.content.clone());
+
+                let mut messages = Vec::new();
+                messages.push(context_msg);
+                messages.push(user_msg);
+
+                let client = OpenAIClient::new(&GlobalConfig::load("config.json").openai_key);
+
+                let resp = client
+                    .create_chat_completion(|args| args.max_tokens(1024).messages(messages))
+                    .await
+                    .unwrap();
+
+                let new_msg = match resp.json.as_object().unwrap().get("error") {
+                    Some(error) => {
+                        let error = error
+                            .as_object()
+                            .unwrap()
+                            .get("message")
+                            .unwrap()
+                            .as_str()
+                            .unwrap();
+
+                        error.to_string()
+                    }
+                    None => resp.get_content(0).await.unwrap(),
+                };
+
+                msg.reply(&ctx.http, new_msg).await.unwrap();
             }
         }
 
