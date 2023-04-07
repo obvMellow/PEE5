@@ -70,7 +70,8 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
         .read(true)
         .write(true)
         .create(true)
-        .open(format!("{}/{}", CHAT_PATH, interaction.guild_id.unwrap()));
+        .open(format!("{}/{}", CHAT_PATH, interaction.guild_id.unwrap()))
+        .unwrap();
     file.write_all(channel.id.as_u64().to_string().as_bytes())?;
 
     interaction
