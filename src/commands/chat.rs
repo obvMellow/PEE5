@@ -1,4 +1,7 @@
-use std::{fs::File, io::Write};
+use std::{
+    fs::{File, OpenOptions},
+    io::Write,
+};
 
 use crate::Result;
 use rand::{distributions::Alphanumeric, Rng};
@@ -63,10 +66,11 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
     };
 
     std::fs::create_dir_all(CHAT_PATH)?;
-    let mut file = File::open(format!("{}/{}", CHAT_PATH, interaction.guild_id.unwrap()))
-        .unwrap_or_else(|_| {
-            File::create(format!("{}/{}", CHAT_PATH, interaction.guild_id.unwrap())).unwrap()
-        });
+    let mut file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(format!("{}/{}", CHAT_PATH, interaction.guild_id.unwrap()));
     file.write_all(channel.id.as_u64().to_string().as_bytes())?;
 
     interaction
