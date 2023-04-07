@@ -309,7 +309,10 @@ impl EventHandler for Handler {
             let mut contained_words: Vec<String> = Vec::new();
 
             for word in blacklisted_words {
-                if msg.content.contains(word.as_str().unwrap()) {
+                if msg
+                    .content
+                    .contains(word.as_str().unwrap().to_lowercase().trim())
+                {
                     contained_words.append(&mut vec![word.as_str().unwrap().to_string()]);
                 }
             }
