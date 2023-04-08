@@ -435,65 +435,66 @@ impl EventHandler for Handler {
             }
 
             // Reply if the message is sent in a chat
-            let chats = std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()))
-                .unwrap();
+            let chats = std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()));
 
             dbg!(&chats);
 
-            if chats.contains(&msg.channel_id.to_string()) {
-                let channel = msg.channel_id;
+            if let Ok(chats) = chats {
+                if chats.contains(&msg.channel_id.to_string()) {
+                    let channel = msg.channel_id;
 
-                let mut context_msg = channel
-                    .messages(&ctx.http, |builder| builder.limit(100))
-                    .await
-                    .unwrap();
+                    let mut context_msg = channel
+                        .messages(&ctx.http, |builder| builder.limit(100))
+                        .await
+                        .unwrap();
 
-                context_msg.reverse();
+                    context_msg.reverse();
 
-                let mut context = String::new();
+                    let mut context = String::new();
 
-                for msg in context_msg {
-                    context.push_str(
-                        format!("Author: {}\nContent: {} \n", msg.author.name, msg.content)
-                            .as_str(),
-                    );
-                }
-
-                let mut context_msg = HashMap::new();
-                context_msg.insert("role".to_string(), "assistant".to_string());
-                context_msg.insert("content".to_string(), context);
-
-                let mut user_msg = HashMap::new();
-                user_msg.insert("role".to_string(), "user".to_string());
-                user_msg.insert("content".to_string(), msg.content.clone());
-
-                let mut messages = Vec::new();
-                messages.push(context_msg);
-                messages.push(user_msg);
-
-                let client = OpenAIClient::new(&GlobalConfig::load("config.json").openai_key);
-
-                let resp = client
-                    .create_chat_completion(|args| args.max_tokens(1024).messages(messages))
-                    .await
-                    .unwrap();
-
-                let new_msg = match resp.json.as_object().unwrap().get("error") {
-                    Some(error) => {
-                        let error = error
-                            .as_object()
-                            .unwrap()
-                            .get("message")
-                            .unwrap()
-                            .as_str()
-                            .unwrap();
-
-                        error.to_string()
+                    for msg in context_msg {
+                        context.push_str(
+                            format!("Author: {}\nContent: {} \n", msg.author.name, msg.content)
+                                .as_str(),
+                        );
                     }
-                    None => resp.get_content(0).await.unwrap(),
-                };
 
-                msg.reply(&ctx.http, new_msg).await.unwrap();
+                    let mut context_msg = HashMap::new();
+                    context_msg.insert("role".to_string(), "assistant".to_string());
+                    context_msg.insert("content".to_string(), context);
+
+                    let mut user_msg = HashMap::new();
+                    user_msg.insert("role".to_string(), "user".to_string());
+                    user_msg.insert("content".to_string(), msg.content.clone());
+
+                    let mut messages = Vec::new();
+                    messages.push(context_msg);
+                    messages.push(user_msg);
+
+                    let client = OpenAIClient::new(&GlobalConfig::load("config.json").openai_key);
+
+                    let resp = client
+                        .create_chat_completion(|args| args.max_tokens(1024).messages(messages))
+                        .await
+                        .unwrap();
+
+                    let new_msg = match resp.json.as_object().unwrap().get("error") {
+                        Some(error) => {
+                            let error = error
+                                .as_object()
+                                .unwrap()
+                                .get("message")
+                                .unwrap()
+                                .as_str()
+                                .unwrap();
+
+                            error.to_string()
+                        }
+                        None => resp.get_content(0).await.unwrap(),
+                    };
+
+                    msg.reply(&ctx.http, new_msg).await.unwrap();
+                }
             }
         }
 
