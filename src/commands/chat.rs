@@ -11,7 +11,7 @@ use serenity::{
                 application_command::ApplicationCommandInteraction, InteractionResponseType,
                 MessageFlags,
             },
-            ChannelType, PermissionOverwrite, PermissionOverwriteType,
+            ChannelType, PermissionOverwrite, PermissionOverwriteType, RoleId, UserId,
         },
         Permissions,
     },
@@ -19,6 +19,7 @@ use serenity::{
 };
 
 const CHAT_PATH: &str = "guilds/chats";
+const BOT_ID: u64 = 1087464844288069722;
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
     let private = interaction.data.options.iter().any(|option| {
@@ -32,11 +33,23 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
             .map(char::from)
             .collect::<String>();
 
-    let priv_perm = PermissionOverwrite {
-        allow: Permissions::SEND_MESSAGES | Permissions::SEND_MESSAGES,
-        deny: Permissions::empty(),
-        kind: PermissionOverwriteType::Member(interaction.user.id),
-    };
+    let priv_perms = vec![
+        PermissionOverwrite {
+            allow: Permissions::VIEW_CHANNEL | Permissions::SEND_MESSAGES,
+            deny: Permissions::empty(),
+            kind: PermissionOverwriteType::Member(interaction.user.id),
+        },
+        PermissionOverwrite {
+            allow: Permissions::empty(),
+            deny: Permissions::VIEW_CHANNEL | Permissions::SEND_MESSAGES,
+            kind: PermissionOverwriteType::Role(RoleId(interaction.guild_id.unwrap().0)),
+        },
+        PermissionOverwrite {
+            allow: Permissions::VIEW_CHANNEL | Permissions::SEND_MESSAGES,
+            deny: Permissions::empty(),
+            kind: PermissionOverwriteType::Member(UserId(BOT_ID)),
+        },
+    ];
 
     let channel = match private {
         true => {
@@ -47,7 +60,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                     channel
                         .name(channel_name)
                         .kind(ChannelType::Text)
-                        .permissions(vec![priv_perm])
+                        .permissions(priv_perms)
                 })
                 .await?
         }
