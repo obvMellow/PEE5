@@ -84,6 +84,11 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
         .unwrap();
     file.write_all(channel.id.as_u64().to_string().as_bytes())?;
 
+    channel.send_message(&ctx.http, |message| {
+        message
+            .content(format!("Hello, {}!\n\nYou can chat with me here.\n\nWhen you want to end the conversation, type \"!end\".", interaction.user.mention()))
+    }).await?;
+
     interaction
         .create_interaction_response(&ctx.http, |response| {
             response

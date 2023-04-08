@@ -14,7 +14,7 @@ use serenity::async_trait;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
-use serenity::model::prelude::{Activity, ChannelId, Guild, Message};
+use serenity::model::prelude::{Activity, ChannelId, Guild, GuildId, Message};
 use serenity::prelude::*;
 use serenity::utils::Colour;
 
@@ -443,6 +443,24 @@ impl EventHandler for Handler {
                 if chats.contains(&msg.channel_id.to_string()) {
                     let channel = msg.channel_id;
 
+                    if msg.content.starts_with("!end") {
+                        let mut chats = std::fs::read_to_string(format!(
+                            "{}/{}",
+                            CHAT_PATH,
+                            msg.guild_id.unwrap()
+                        ))
+                        .unwrap();
+
+                        chats = chats.replace(&msg.channel_id.to_string(), "");
+                        std::fs::write(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()), chats)
+                            .unwrap();
+
+                        channel.delete(&ctx.http).await.unwrap();
+
+                        _save(guild_id, &mut config);
+                        return;
+                    }
+
                     let mut context_msg = channel
                         .messages(&ctx.http, |builder| builder.limit(100))
                         .await
@@ -454,10 +472,13 @@ impl EventHandler for Handler {
 
                     for msg in context_msg {
                         context.push_str(
-                            format!("Author: {}\nContent: {} \n", msg.author.name, msg.content)
+                            format!("Author: {}\nContent: {} \n\n", msg.author.name, msg.content)
                                 .as_str(),
                         );
                     }
+                    context.push_str(
+                        "Only include the content of the message. No 'Author: ' or 'Content: '.",
+                    );
 
                     let mut context_msg = HashMap::new();
                     context_msg.insert("role".to_string(), "assistant".to_string());
@@ -499,9 +520,7 @@ impl EventHandler for Handler {
         }
 
         // Save the config file here
-        let config_file = File::create(format!("guilds/{}.json", guild_id)).unwrap();
-
-        serde_json::to_writer_pretty(config_file, &config).unwrap();
+        _save(guild_id, &mut config);
     }
 
     async fn guild_create(&self, _ctx: Context, guild: Guild) {
@@ -528,6 +547,12 @@ impl EventHandler for Handler {
         )
         .unwrap();
     }
+}
+
+fn _save(guild_id: GuildId, config: &mut Value) {
+    let config_file = File::create(format!("guilds/{}.json", guild_id)).unwrap();
+
+    serde_json::to_writer_pretty(config_file, &config).unwrap();
 }
 
 #[tokio::main]
