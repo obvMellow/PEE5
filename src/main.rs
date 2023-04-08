@@ -229,7 +229,8 @@ impl EventHandler for Handler {
             );
         }
 
-        ctx.set_activity(Activity::playing("DM to chat with me!")).await;
+        ctx.set_activity(Activity::playing("DM to chat with me!"))
+            .await;
 
         println!(
             "{} Registered commands: {:#?}, Connected to {}",
@@ -534,7 +535,11 @@ async fn _chat(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<
     let client = OpenAIClient::new(&GlobalConfig::load("config.json").openai_key);
 
     let resp = client
-        .create_chat_completion(|args| args.max_tokens(1024).messages(messages))
+        .create_chat_completion(|args| {
+            args.max_tokens(1024)
+                .messages(messages)
+                .model("gpt-3.5-turbo")
+        })
         .await
         .unwrap();
 
