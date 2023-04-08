@@ -1,7 +1,4 @@
-use std::{
-    fs::{File, OpenOptions},
-    io::Write,
-};
+use std::{fs::OpenOptions, io::Write};
 
 use crate::Result;
 use rand::{distributions::Alphanumeric, Rng};
