@@ -476,9 +476,7 @@ impl EventHandler for Handler {
                                 .as_str(),
                         );
                     }
-                    context.push_str(
-                        "Only include the content of the message. No 'Author: ' or 'Content: '.",
-                    );
+                    context.push_str("Only include the content of your response, not the author.");
 
                     let mut context_msg = HashMap::new();
                     context_msg.insert("role".to_string(), "assistant".to_string());
