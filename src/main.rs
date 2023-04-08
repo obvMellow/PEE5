@@ -229,7 +229,7 @@ impl EventHandler for Handler {
             );
         }
 
-        ctx.set_activity(Activity::playing("/help")).await;
+        ctx.set_activity(Activity::playing("DM to chat with me!")).await;
 
         println!(
             "{} Registered commands: {:#?}, Connected to {}",
@@ -244,6 +244,11 @@ impl EventHandler for Handler {
 
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.author.bot {
+            return;
+        }
+
+        if msg.guild_id.is_none() {
+            _dm_msg(ctx, msg).await;
             return;
         }
 
@@ -441,78 +446,7 @@ impl EventHandler for Handler {
 
             if let Ok(chats) = chats {
                 if chats.contains(&msg.channel_id.to_string()) {
-                    let channel = msg.channel_id;
-
-                    if msg.content.starts_with("!end") {
-                        let mut chats = std::fs::read_to_string(format!(
-                            "{}/{}",
-                            CHAT_PATH,
-                            msg.guild_id.unwrap()
-                        ))
-                        .unwrap();
-
-                        chats = chats.replace(&msg.channel_id.to_string(), "");
-                        std::fs::write(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()), chats)
-                            .unwrap();
-
-                        channel.delete(&ctx.http).await.unwrap();
-
-                        _save(guild_id, &mut config);
-                        return;
-                    }
-
-                    let mut context_msg = channel
-                        .messages(&ctx.http, |builder| builder.limit(100))
-                        .await
-                        .unwrap();
-
-                    context_msg.reverse();
-
-                    let mut context = String::new();
-
-                    for msg in context_msg {
-                        context.push_str(
-                            format!("Author: {}\nContent: {} \n\n", msg.author.name, msg.content)
-                                .as_str(),
-                        );
-                    }
-                    context.push_str("Only include the content of your response, not the author.");
-
-                    let mut context_msg = HashMap::new();
-                    context_msg.insert("role".to_string(), "assistant".to_string());
-                    context_msg.insert("content".to_string(), context);
-
-                    let mut user_msg = HashMap::new();
-                    user_msg.insert("role".to_string(), "user".to_string());
-                    user_msg.insert("content".to_string(), msg.content.clone());
-
-                    let mut messages = Vec::new();
-                    messages.push(context_msg);
-                    messages.push(user_msg);
-
-                    let client = OpenAIClient::new(&GlobalConfig::load("config.json").openai_key);
-
-                    let resp = client
-                        .create_chat_completion(|args| args.max_tokens(1024).messages(messages))
-                        .await
-                        .unwrap();
-
-                    let new_msg = match resp.json.as_object().unwrap().get("error") {
-                        Some(error) => {
-                            let error = error
-                                .as_object()
-                                .unwrap()
-                                .get("message")
-                                .unwrap()
-                                .as_str()
-                                .unwrap();
-
-                            error.to_string()
-                        }
-                        None => resp.get_content(0).await.unwrap(),
-                    };
-
-                    msg.reply(&ctx.http, new_msg).await.unwrap();
+                    _chat(msg, ctx, &mut config, Some(guild_id)).await;
                 }
             }
         }
@@ -551,6 +485,80 @@ fn _save(guild_id: GuildId, config: &mut Value) {
     let config_file = File::create(format!("guilds/{}.json", guild_id)).unwrap();
 
     serde_json::to_writer_pretty(config_file, &config).unwrap();
+}
+
+async fn _chat(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<GuildId>) {
+    let channel = msg.channel_id;
+
+    if msg.content.starts_with("!end") && guild_id.is_some() {
+        let mut chats =
+            std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap())).unwrap();
+
+        chats = chats.replace(&msg.channel_id.to_string(), "");
+        std::fs::write(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()), chats).unwrap();
+
+        channel.delete(&ctx.http).await.unwrap();
+
+        _save(guild_id.unwrap(), config);
+        return;
+    }
+
+    let mut context_msg = channel
+        .messages(&ctx.http, |builder| builder.limit(100))
+        .await
+        .unwrap();
+
+    context_msg.reverse();
+
+    let mut context = String::new();
+
+    for msg in context_msg {
+        context.push_str(
+            format!("Author: {}\nContent: {} \n\n", msg.author.name, msg.content).as_str(),
+        );
+    }
+    context.push_str("Only include the content of your response, not the author.");
+
+    let mut context_msg = HashMap::new();
+    context_msg.insert("role".to_string(), "assistant".to_string());
+    context_msg.insert("content".to_string(), context);
+
+    let mut user_msg = HashMap::new();
+    user_msg.insert("role".to_string(), "user".to_string());
+    user_msg.insert("content".to_string(), msg.content.clone());
+
+    let mut messages = Vec::new();
+    messages.push(context_msg);
+    messages.push(user_msg);
+
+    let client = OpenAIClient::new(&GlobalConfig::load("config.json").openai_key);
+
+    let resp = client
+        .create_chat_completion(|args| args.max_tokens(1024).messages(messages))
+        .await
+        .unwrap();
+
+    let new_msg = match resp.json.as_object().unwrap().get("error") {
+        Some(error) => {
+            let error = error
+                .as_object()
+                .unwrap()
+                .get("message")
+                .unwrap()
+                .as_str()
+                .unwrap();
+
+            error.to_string()
+        }
+        None => resp.get_content(0).await.unwrap(),
+    };
+
+    msg.reply(&ctx.http, new_msg).await.unwrap();
+}
+
+async fn _dm_msg(ctx: Context, message: Message) {
+    let mut config = Value::Null;
+    _chat(message, ctx, &mut config, None).await;
 }
 
 #[tokio::main]
