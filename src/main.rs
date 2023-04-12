@@ -565,6 +565,7 @@ async fn _chat(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<
 
 async fn _dm_msg(ctx: Context, message: Message) {
     let mut config = Value::Null;
+    logging(&message);
     _chat(message, ctx, &mut config, None).await;
 }
 
