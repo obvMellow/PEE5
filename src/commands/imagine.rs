@@ -83,6 +83,10 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
 
                         embed.image(&url);
 
+                        embed.footer(|footer| {
+                            footer.text("Powered by OpenAI DALL-E").icon_url("https://cdn.iconscout.com/icon/premium/png-512-thumb/openai-1523664-1290202.png")
+                        });
+
                         embed
                     });
 
@@ -99,6 +103,12 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                                     .custom_id("imagine_save")
                                     .style(ButtonStyle::Secondary)
                                     .label("Save")
+                            })
+                            .create_button(|button| {
+                                button
+                                    .label("Vote")
+                                    .style(ButtonStyle::Link)
+                                    .url("https://top.gg/bot/1087464844288069722/vote")
                             })
                         })
                     });

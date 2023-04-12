@@ -3,12 +3,16 @@ use crate::Result;
 use openai_gpt_rs::{client::Client, response::Content};
 use serenity::{
     builder::CreateApplicationCommand,
-    model::prelude::{
-        command::CommandOptionType,
-        interaction::{
-            application_command::{ApplicationCommandInteraction, CommandDataOptionValue},
-            InteractionResponseType,
+    model::{
+        prelude::{
+            command::CommandOptionType,
+            component::ButtonStyle,
+            interaction::{
+                application_command::{ApplicationCommandInteraction, CommandDataOptionValue},
+                InteractionResponseType,
+            },
         },
+        Timestamp,
     },
     prelude::Context,
     utils::Colour,
@@ -64,6 +68,21 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                         .title(format!(r"\> {}", question))
                         .description(format!("```{}```", content))
                         .colour(Colour::from_rgb(69, 69, 69))
+                        .footer(|footer| {
+                            footer
+                                .text("Powered by OpenAI GPT-3")
+                                .icon_url("https://cdn.iconscout.com/icon/premium/png-512-thumb/openai-1523664-1290202.png")
+                        })
+                        .timestamp(Timestamp::now())
+                }).components(|components| {
+                    components.create_action_row(|row| {
+                        row.create_button(|button| {
+                            button
+                                .label("Vote")
+                                .style(ButtonStyle::Link)
+                                .url("https://top.gg/bot/1087464844288069722/vote")
+                        })
+                    })
                 })
             })
             .await?;
