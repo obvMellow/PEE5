@@ -303,6 +303,8 @@ impl EventHandler for Handler {
             None => {}
         }
 
+        logging(&msg);
+
         // Moderate the message here
         let mut deleted = false;
 
@@ -564,6 +566,28 @@ async fn _chat(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<
 async fn _dm_msg(ctx: Context, message: Message) {
     let mut config = Value::Null;
     _chat(message, ctx, &mut config, None).await;
+}
+
+fn logging(msg: &Message) {
+    let mut log_msg = String::from(&msg.content);
+
+    if msg.embeds.len() > 0 {
+        log_msg.push_str(&format!(
+            "\n\n{} {:?}",
+            "Embed:".yellow().bold(),
+            msg.embeds
+        ));
+    }
+
+    println!(
+        "{} {} {} {} {} {}",
+        "Message:".green().bold(),
+        log_msg,
+        "\nfrom".green().bold(),
+        msg.author.tag(),
+        "\nin".green().bold(),
+        msg.channel_id
+    );
 }
 
 #[tokio::main]
