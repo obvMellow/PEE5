@@ -11,6 +11,7 @@ use openai_gpt_rs::client::Client as OpenAIClient;
 use openai_gpt_rs::response::Content;
 use serde_json::Value;
 use serenity::async_trait;
+use serenity::builder::CreateEmbedFooter;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
@@ -292,6 +293,12 @@ impl EventHandler for Handler {
                                         .field("Channel", msg.channel_id.mention(), true)
                                         .field("Content", &msg.content, false)
                                         .color(Colour::from_rgb(102, 255, 102))
+                                        .footer(|footer| {
+                                            footer.text(format!(
+                                                "User ID: {} | Message ID: {} | Channel ID: {}",
+                                                msg.author.id, msg.id, msg.channel_id
+                                            ))
+                                        })
                                         .timestamp(&msg.timestamp)
                                 })
                             })
