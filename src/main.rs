@@ -11,7 +11,6 @@ use openai_gpt_rs::client::Client as OpenAIClient;
 use openai_gpt_rs::response::Content;
 use serde_json::Value;
 use serenity::async_trait;
-use serenity::builder::CreateEmbedFooter;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
