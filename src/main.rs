@@ -451,8 +451,6 @@ impl EventHandler for Handler {
             // Reply if the message is sent in a chat
             let chats = std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()));
 
-            dbg!(&chats);
-
             if let Ok(chats) = chats {
                 if chats.contains(&msg.channel_id.to_string()) {
                     _chat(msg, ctx, &mut config, Some(guild_id)).await;
@@ -587,7 +585,7 @@ fn logging(msg: &Message) {
     }
 
     println!(
-        "{} {} {} {} {} {}",
+        "\n{} {} {} {} {} {}\n",
         "Message:".green().bold(),
         log_msg,
         "\nfrom".green().bold(),
