@@ -228,6 +228,12 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
                                     .style(ButtonStyle::Secondary)
                                     .label("Save")
                             })
+                            .create_button(|button| {
+                                button
+                                    .label("Vote")
+                                    .style(ButtonStyle::Link)
+                                    .url("https://top.gg/bot/1087464844288069722/vote")
+                            })
                         })
                     });
 
@@ -340,6 +346,12 @@ pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Res
                             .label("Retry")
                             .style(ButtonStyle::Primary)
                             .custom_id("imagine_retry")
+                    })
+                    .create_button(|button| {
+                        button
+                            .label("Vote")
+                            .style(ButtonStyle::Link)
+                            .url("https://top.gg/bot/1087464844288069722/vote")
                     })
                 })
             });
