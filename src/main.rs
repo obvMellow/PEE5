@@ -3,6 +3,7 @@ mod global_config;
 
 use std::collections::HashMap;
 use std::fs::{self, File};
+use std::thread;
 use std::time::Duration;
 
 use colored::Colorize;
@@ -21,6 +22,7 @@ use serenity::utils::Colour;
 pub type Result<T> = std::result::Result<T, SerenityError>;
 
 const CHAT_PATH: &str = "guilds/chats";
+const CHAT_COMMANDS: [&str; 3] = ["!end", "!rename", "!clear"];
 
 struct Handler;
 
@@ -497,17 +499,22 @@ fn _save(guild_id: GuildId, config: &mut Value) {
 async fn _chat(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<GuildId>) {
     let channel = msg.channel_id;
 
-    if msg.content.starts_with("!end") && guild_id.is_some() {
-        let mut chats =
-            std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap())).unwrap();
-
-        chats = chats.replace(&msg.channel_id.to_string(), "");
-        std::fs::write(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()), chats).unwrap();
-
-        channel.delete(&ctx.http).await.unwrap();
-
-        _save(guild_id.unwrap(), config);
-        return;
+    if CHAT_COMMANDS.iter().any(|v| msg.content.starts_with(*v)) && guild_id.is_some() {
+        match msg.content.split(' ').nth(0) {
+            Some("!end") => {
+                _end(&msg, channel, &ctx, guild_id, config).await;
+                return;
+            }
+            Some("!rename") => {
+                _rename(&msg, channel, &ctx).await;
+                return;
+            }
+            Some("!clear") => {
+                _clear(&msg, channel, &ctx).await;
+                return;
+            }
+            _ => (),
+        }
     }
 
     let typing = ctx.http.start_typing(msg.channel_id.0).unwrap();
@@ -570,6 +577,61 @@ async fn _chat(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<
 
     msg.reply(&ctx.http, new_msg).await.unwrap();
     typing.stop().unwrap();
+}
+
+async fn _end(
+    msg: &Message,
+    channel: ChannelId,
+    ctx: &Context,
+    guild_id: Option<GuildId>,
+    config: &mut Value,
+) {
+    let mut chats =
+        std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap())).unwrap();
+    chats = chats.replace(&msg.channel_id.to_string(), "");
+    std::fs::write(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()), chats).unwrap();
+    channel.delete(&ctx.http).await.unwrap();
+    _save(guild_id.unwrap(), config);
+}
+
+async fn _rename(msg: &Message, channel: ChannelId, ctx: &Context) {
+    let name = msg.content.split(' ').nth(1);
+    match name {
+        Some(name) => {
+            channel.edit(&ctx.http, |c| c.name(name)).await.unwrap();
+            msg.reply_ping(&ctx.http, "Channel renamed!").await.unwrap();
+        }
+        None => {
+            let spaces = " ".repeat(msg.content.len() + 1);
+            let error_msg = format!(
+                "```error: No name provided\n
+    | {} __
+    | {}|
+    | {}expected a name\n
+    help: use !rename <name> to rename the channel (eg. !rename cool-channel)```",
+                msg.content, spaces, spaces
+            );
+
+            msg.reply_ping(&ctx.http, error_msg).await.unwrap();
+        }
+    }
+}
+
+async fn _clear(msg: &Message, channel: ChannelId, ctx: &Context) {
+    let messages = channel
+        .messages(&ctx.http, |builder| builder.limit(100))
+        .await
+        .unwrap();
+
+    for msg in messages {
+        msg.delete(&ctx.http).await.unwrap();
+    }
+    let resp = channel
+        .say(&ctx.http, format!("{} Cleared!", msg.author.mention()))
+        .await
+        .unwrap();
+    thread::sleep(Duration::from_secs(5));
+    resp.delete(&ctx.http).await.unwrap();
 }
 
 async fn _dm_msg(ctx: Context, message: Message) {

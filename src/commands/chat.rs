@@ -86,7 +86,10 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
 
     channel.send_message(&ctx.http, |message| {
         message
-            .content(format!("Hello, {}!\n\nYou can chat with me here.\n\nWhen you want to end the conversation, type \"!end\".", interaction.user.mention()))
+            .content(format!("Hello, {}!\n\nYou can chat with me here.\n\nCommands:\n
+            **!end:** Ends the conversation and deletes the channel. Use this command if the bot starts saying you requested too many tokens.\n
+            **!rename [NAME]:** Changes the channels name. If the name includes spaces only the word before the first space will be used.\n
+            **!clear:** Clears the messages in the channel.", interaction.user.mention()))
     }).await?;
 
     interaction
