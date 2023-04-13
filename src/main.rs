@@ -510,6 +510,8 @@ async fn _chat(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<
         return;
     }
 
+    let typing = ctx.http.start_typing(msg.channel_id.0).unwrap();
+
     let mut context_msg = channel
         .messages(&ctx.http, |builder| builder.limit(100))
         .await
@@ -567,6 +569,7 @@ async fn _chat(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<
     };
 
     msg.reply(&ctx.http, new_msg).await.unwrap();
+    typing.stop().unwrap();
 }
 
 async fn _dm_msg(ctx: Context, message: Message) {
@@ -579,11 +582,7 @@ fn logging(msg: &Message) {
     let mut log_msg = String::from(&msg.content);
 
     if msg.embeds.len() > 0 {
-        log_msg.push_str(&format!(
-            "\n{} {:?}",
-            "Embed:".yellow().bold(),
-            msg.embeds
-        ));
+        log_msg.push_str(&format!("\n{} {:?}", "Embed:".green().bold(), msg.embeds));
     }
 
     println!(
