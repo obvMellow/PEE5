@@ -604,12 +604,19 @@ async fn _rename(msg: &Message, channel: ChannelId, ctx: &Context) {
         None => {
             let spaces = " ".repeat(msg.content.len() + 1);
             let error_msg = format!(
-                "```error: No name provided\n
-    | {} __
-    | {}|
-    | {}expected a name\n
-    help: use !rename <name> to rename the channel (eg. !rename cool-channel)```",
-                msg.content, spaces, spaces
+                "```ansi\n{}: No name provided\n
+    {} {} {}
+    {} {}{} {}\n
+    {}: use !rename <name> to rename the channel (eg. !rename cool-channel)```",
+                "error".red().bold(),
+                "|".bold(),
+                msg.content,
+                "__".red().bold(),
+                "|".bold(),
+                spaces,
+                "^^".red().bold(),
+                "expected a name".red().bold(),
+                "= help".bold()
             );
 
             msg.reply_ping(&ctx.http, error_msg).await.unwrap();
