@@ -524,7 +524,9 @@ async fn _chat(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<
             format!("Author: {}\nContent: {} \n\n", msg.author.name, msg.content).as_str(),
         );
     }
-    context.push_str("Only include the content of your response, not the author.");
+    context.push_str(
+        "# Only include the content of your response, not the author, or \"Content:\" label.",
+    );
 
     let mut context_msg = HashMap::new();
     context_msg.insert("role".to_string(), "assistant".to_string());
@@ -578,7 +580,7 @@ fn logging(msg: &Message) {
 
     if msg.embeds.len() > 0 {
         log_msg.push_str(&format!(
-            "\n\n{} {:?}",
+            "\n{} {:?}",
             "Embed:".yellow().bold(),
             msg.embeds
         ));
