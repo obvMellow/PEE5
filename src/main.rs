@@ -669,7 +669,9 @@ fn logging(msg: &Message) {
 async fn main() {
     let token = GlobalConfig::load("config.json").discord_token;
 
-    let mut client = Client::builder(token, GatewayIntents::all())
+    let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
+
+    let mut client = Client::builder(token, intents)
         .event_handler(Handler)
         .await
         .expect("Error creating client");
