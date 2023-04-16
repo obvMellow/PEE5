@@ -1,5 +1,7 @@
 # PEE5
 
+[![Rust](https://github.com/obvMellow/PEE5/actions/workflows/rust.yml/badge.svg)](https://github.com/obvMellow/PEE5/actions/workflows/rust.yml)
+
 **Disclaimer:** This bot is still in heavy development
 
 Completely free and open-source, *blazingly fast* Discord bot that aims to be an alternative to MEE6
