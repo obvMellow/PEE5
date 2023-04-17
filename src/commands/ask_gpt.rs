@@ -78,6 +78,11 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                     components.create_action_row(|row| {
                         row.create_button(|button| {
                             button
+                                .label("Support ❤️")
+                                .style(ButtonStyle::Link)
+                                .url("https://patreon.com/_mellow")
+                        }).create_button(|button| {
+                            button
                                 .label("Vote")
                                 .style(ButtonStyle::Link)
                                 .url("https://top.gg/bot/1087464844288069722/vote")

@@ -106,6 +106,12 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                             })
                             .create_button(|button| {
                                 button
+                                    .label("Support ❤️")
+                                    .style(ButtonStyle::Link)
+                                    .url("https://patreon.com/_mellow")
+                            })
+                            .create_button(|button| {
+                                button
                                     .label("Vote")
                                     .style(ButtonStyle::Link)
                                     .url("https://top.gg/bot/1087464844288069722/vote")
@@ -230,6 +236,12 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
                             })
                             .create_button(|button| {
                                 button
+                                    .label("Support ❤️")
+                                    .style(ButtonStyle::Link)
+                                    .url("https://patreon.com/_mellow")
+                            })
+                            .create_button(|button| {
+                                button
                                     .label("Vote")
                                     .style(ButtonStyle::Link)
                                     .url("https://top.gg/bot/1087464844288069722/vote")
@@ -346,6 +358,12 @@ pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Res
                             .label("Retry")
                             .style(ButtonStyle::Primary)
                             .custom_id("imagine_retry")
+                    })
+                    .create_button(|button| {
+                        button
+                            .label("Support ❤️")
+                            .style(ButtonStyle::Link)
+                            .url("https://patreon.com/_mellow")
                     })
                     .create_button(|button| {
                         button
