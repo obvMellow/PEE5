@@ -66,7 +66,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
     let url = _generate(&client, |args| {
         args.prompt(_prompt)
             .n(1)
-            .size(ImageSize::Big)
+            .size(ImageSize::Small)
             .response_format(ImageResponseFormat::Url)
     })
     .await;
@@ -200,7 +200,7 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
     let url = _generate(&client, |args| {
         args.prompt(prompt)
             .n(1)
-            .size(ImageSize::Big)
+            .size(ImageSize::Small)
             .response_format(ImageResponseFormat::Url)
     })
     .await;
