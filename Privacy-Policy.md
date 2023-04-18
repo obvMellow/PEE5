@@ -7,22 +7,13 @@ Contact: pee5support@protonmail.com
 
 ### What We Collect
 
-Our software only collects data provided by [Discord API](https://discord.com/developers/docs/).
+Our software only collects data provided by Discord API: https://discord.com/developers/docs/.
 
 Some of these data are logged in order to prevent any malicious use. These data consist of:
-- Messages sent in the guilds that PEE5 is added
-- Owner of these messages
-- All data provided by [Discord API](https://discord.com/developers/docs/) when using a [slash command](https://support.discord.com/hc/en-us/articles/1500000368501-Slash-Commands-FAQ)
+- Slash commands used.
+- Details of the slash command. See: https://discord.com/developers/docs/interactions/application-commands#slash-commands
 
 These data are not anonymous and can be traced back to your Discord account.
-
-### Who We Share These Data With
-
-We do not share any of these data with anyone unless someone from a higher authority such as Discord or government agencies asks for.
-
-### Why We Collect These Data
-
-These data are collected to prevent any malicious use of our software, respond to enforcement requests and analytics.
 
 ### Legal Basis of Processing
 
