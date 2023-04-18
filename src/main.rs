@@ -311,8 +311,6 @@ impl EventHandler for Handler {
             None => {}
         }
 
-        logging(&msg);
-
         // Moderate the message here
         let mut deleted = false;
 
@@ -643,26 +641,7 @@ async fn _clear(msg: &Message, channel: ChannelId, ctx: &Context) {
 
 async fn _dm_msg(ctx: Context, message: Message) {
     let mut config = Value::Null;
-    logging(&message);
     _chat(message, ctx, &mut config, None).await;
-}
-
-fn logging(msg: &Message) {
-    let mut log_msg = String::from(&msg.content);
-
-    if msg.embeds.len() > 0 {
-        log_msg.push_str(&format!("\n{} {:?}", "Embed:".green().bold(), msg.embeds));
-    }
-
-    println!(
-        "\n{} {} {} {} {} {}\n",
-        "Message:".green().bold(),
-        log_msg,
-        "\nfrom".green().bold(),
-        msg.author.tag(),
-        "\nin".green().bold(),
-        msg.channel_id
-    );
 }
 
 #[tokio::main]
