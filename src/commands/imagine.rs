@@ -369,10 +369,11 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
                 .await?;
 
             let tmp_name = format!(
-                "tmp/{}:{}:{}",
+                "tmp/{}:{}:{}:{}",
                 component.guild_id.unwrap(),
                 component.channel_id,
                 component.user.id,
+                component.message.id,
             );
             let mut tmp_file = File::create(tmp_name).unwrap();
             tmp_file
