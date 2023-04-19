@@ -87,8 +87,6 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .name("key")
                 .description("The key to set")
                 .kind(CommandOptionType::String)
-                .add_string_choice("Moderator Role ID", "moderator_role_id")
-                .add_string_choice("Admin Role ID", "admin_role_id")
                 .add_string_choice("Log Channel ID", "log_channel_id")
                 .required(true)
         })
