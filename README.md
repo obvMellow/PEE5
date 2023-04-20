@@ -35,3 +35,38 @@ python3 setup.py
 cargo run --release
 ```
 -   Done!
+
+## Developing
+
+Any contribution to the project is appreciated.
+If you want to help the development of this bot, please follow these guidelines.
+
+### Code Style
+
+Just follow the [Rust code style guide](https://doc.rust-lang.org/beta/style-guide/index.html).
+
+### General Structure
+
+When developing, keep the general structure of the code as following.
+
+For slash commands:
+- All command files must be in `src/commands`.
+- The main command name should be `run`.
+- Command can have side effects.
+- The command call should be like the following:
+```rust
+let result: Result<()> = match command.data.name.as_str() {
+    "example" => commands::example::run(&ctx, &command).await, // Arguments for the function can change.
+    _ => Ok(()),
+}
+```
+[Click to see the actual code used in production.](https://github.com/obvMellow/PEE5/blob/master/src/main.rs#L33)
+
+For plugins:
+- All plugin files must be in `src/plugins`.
+- Main command name should be `run`.
+- Plugin can have side effects.
+- Plugin should be called in a place that it makes sense.
+For example, if the plugin is a command, it should be called on `message` event in the proper spot.
+
+Finally just create a pull request and I will review it!
