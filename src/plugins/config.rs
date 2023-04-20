@@ -3,6 +3,19 @@ use std::fs::File;
 use serenity::{json::Value, model::prelude::Message, prelude::Context};
 
 pub async fn run(msg: &Message, ctx: &Context, config: &mut Value) {
+    if !msg
+        .member
+        .as_ref()
+        .unwrap()
+        .permissions
+        .unwrap()
+        .manage_guild()
+    {
+        let content = format!("```error: You do not have permission to use this command```");
+        msg.reply_ping(&ctx.http, content).await.unwrap();
+        return;
+    }
+
     let args = msg.content.split(' ').collect::<Vec<&str>>();
 
     if args.len() < 2 {
