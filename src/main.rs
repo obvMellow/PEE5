@@ -1,28 +1,22 @@
 mod commands;
 mod global_config;
-
-use std::collections::HashMap;
-use std::fs::{self, File};
-use std::thread;
-use std::time::Duration;
+mod plugins;
 
 use colored::Colorize;
 use global_config::GlobalConfig;
-use openai_gpt_rs::client::Client as OpenAIClient;
-use openai_gpt_rs::response::Content;
 use serde_json::Value;
 use serenity::async_trait;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
-use serenity::model::prelude::{Activity, ChannelId, Guild, GuildId, Message};
+use serenity::model::prelude::{Activity, Guild, GuildId, Message};
 use serenity::prelude::*;
 use serenity::utils::Colour;
+use std::fs::{self, File};
 
 pub type Result<T> = std::result::Result<T, SerenityError>;
 
 const CHAT_PATH: &str = "guilds/chats";
-const CHAT_COMMANDS: [&str; 3] = ["!end", "!rename", "!clear"];
 
 struct Handler;
 
@@ -276,184 +270,24 @@ impl EventHandler for Handler {
         }
 
         // Do the logging here
-        let log_channel_id: Option<u64> = match config.as_object().unwrap().get("log_channel_id") {
-            Some(v) => Some(v.as_str().unwrap().parse().unwrap()),
-            None => None,
-        };
-
-        match log_channel_id {
-            Some(log_channel_id) => {
-                for channel in guild_id.channels(&ctx.http).await.unwrap() {
-                    if channel.0.as_u64().to_owned() == log_channel_id {
-                        ChannelId::from(log_channel_id)
-                            .send_message(&ctx.http, |message| {
-                                message.embed(|embed| {
-                                    embed
-                                        .title("Message sent")
-                                        .field("Sender", &msg.author, true)
-                                        .field("Channel", msg.channel_id.mention(), true)
-                                        .field("Content", &msg.content, false)
-                                        .color(Colour::from_rgb(102, 255, 102))
-                                        .footer(|footer| {
-                                            footer.text(format!(
-                                                "User ID: {} | Message ID: {} | Channel ID: {}",
-                                                msg.author.id, msg.id, msg.channel_id
-                                            ))
-                                        })
-                                        .timestamp(&msg.timestamp)
-                                })
-                            })
-                            .await
-                            .unwrap();
-                    }
-                }
-            }
-            None => {}
-        }
+        plugins::logging::run(&ctx, &config, guild_id, &msg).await;
 
         // Moderate the message here
-        let mut deleted = false;
+        let deleted = plugins::automod::run(&msg, &ctx, &config).await;
 
-        let automod = config
-            .as_object()
-            .unwrap()
-            .get("automod")
-            .unwrap()
-            .as_bool()
-            .unwrap();
-
-        if automod {
-            let blacklisted_words = config
-                .as_object()
-                .unwrap()
-                .get("blacklisted_words")
-                .unwrap()
-                .as_array()
-                .unwrap();
-
-            let mut contained_words: Vec<String> = Vec::new();
-
-            for word in blacklisted_words {
-                if msg
-                    .content
-                    .contains(word.as_str().unwrap().to_lowercase().trim())
-                {
-                    contained_words.append(&mut vec![word.as_str().unwrap().to_string()]);
-                }
-            }
-
-            if !contained_words.is_empty() {
-                msg.delete(&ctx.http).await.unwrap();
-
-                let msg = msg
-                    .channel_id
-                    .send_message(&ctx.http, |message| {
-                        message.embed(|embed| {
-                            embed
-                                .description(format!(
-                                    "{} Watch your language!",
-                                    msg.author.mention()
-                                ))
-                                .color(Colour::from_rgb(255, 102, 102))
-                        })
-                    })
-                    .await
-                    .unwrap();
-
-                deleted = true;
-
-                tokio::time::sleep(Duration::from_secs(5)).await;
-
-                msg.delete(&ctx.http).await.unwrap();
-            }
-        }
-
-        // Give the user some xp here
         if !deleted {
-            let users = config.as_object_mut().unwrap().get_mut("users").unwrap();
+            // Give the user some xp here
+            plugins::xp::run(&msg, &mut config);
 
-            let xp_gain = 100;
-
-            let xp = users
-                .as_object_mut()
-                .unwrap()
-                .get_mut(&msg.author.id.to_string())
-                .unwrap();
-
-            *xp = (xp.as_u64().unwrap() + xp_gain).into();
-
-            // Check if the message mentions a user who is afk
-            let afk = config.as_object_mut().unwrap().get_mut("afk").unwrap();
-
-            for mention in &msg.mentions {
-                if afk
-                    .as_object()
-                    .unwrap()
-                    .get(&mention.id.to_string())
-                    .is_some()
-                {
-                    let reason = afk
-                        .as_object()
-                        .unwrap()
-                        .get(&mention.id.to_string())
-                        .unwrap()
-                        .as_object()
-                        .unwrap()
-                        .get("reason")
-                        .unwrap()
-                        .as_str()
-                        .unwrap();
-
-                    msg.channel_id
-                        .send_message(&ctx.http, |message| {
-                            message
-                                .embed(|embed| {
-                                    embed
-                                        .description(format!(
-                                            "{} is afk: {}",
-                                            mention.mention(),
-                                            reason
-                                        ))
-                                        .color(Colour::from_rgb(255, 255, 102))
-                                })
-                                .content(&msg.author)
-                        })
-                        .await
-                        .unwrap();
-                }
-            }
-
-            // Check if the user is afk
-            if afk
-                .as_object()
-                .unwrap()
-                .get(&msg.author.id.to_string())
-                .is_some()
-            {
-                afk.as_object_mut()
-                    .unwrap()
-                    .remove(&msg.author.id.to_string());
-
-                msg.channel_id
-                    .send_message(&ctx.http, |message| {
-                        message
-                            .embed(|embed| {
-                                embed
-                                    .title("I removed your afk.")
-                                    .color(Colour::from_rgb(102, 255, 102))
-                            })
-                            .content(&msg.author)
-                    })
-                    .await
-                    .unwrap();
-            }
+            // Afk plugin here
+            plugins::afk::run(&msg, &ctx, &mut config).await;
 
             // Reply if the message is sent in a chat
             let chats = std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()));
 
             if let Ok(chats) = chats {
                 if chats.contains(&msg.channel_id.to_string()) {
-                    _chat(msg, ctx, &mut config, Some(guild_id)).await;
+                    plugins::chat::run(msg, ctx, &mut config, Some(guild_id)).await;
                 }
             }
         }
@@ -488,160 +322,15 @@ impl EventHandler for Handler {
     }
 }
 
-fn _save(guild_id: GuildId, config: &mut Value) {
+pub fn _save(guild_id: GuildId, config: &mut Value) {
     let config_file = File::create(format!("guilds/{}.json", guild_id)).unwrap();
 
     serde_json::to_writer_pretty(config_file, &config).unwrap();
 }
 
-async fn _chat(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<GuildId>) {
-    let channel = msg.channel_id;
-
-    if CHAT_COMMANDS.iter().any(|v| msg.content.starts_with(*v)) && guild_id.is_some() {
-        match msg.content.split(' ').nth(0) {
-            Some("!end") => {
-                _end(&msg, channel, &ctx, guild_id, config).await;
-                return;
-            }
-            Some("!rename") => {
-                _rename(&msg, channel, &ctx).await;
-                return;
-            }
-            Some("!clear") => {
-                _clear(&msg, channel, &ctx).await;
-                return;
-            }
-            _ => (),
-        }
-    }
-
-    let typing = ctx.http.start_typing(msg.channel_id.0).unwrap();
-
-    let mut context_msg = channel
-        .messages(&ctx.http, |builder| builder.limit(100))
-        .await
-        .unwrap();
-
-    context_msg.reverse();
-
-    let mut context = String::new();
-
-    for msg in context_msg {
-        context.push_str(
-            format!("Author: {}\nContent: {} \n\n", msg.author.name, msg.content).as_str(),
-        );
-    }
-    context.push_str(
-        "# Only include the content of your response, not the author, or \"Content:\" label.",
-    );
-
-    let mut context_msg = HashMap::new();
-    context_msg.insert("role".to_string(), "assistant".to_string());
-    context_msg.insert("content".to_string(), context);
-
-    let mut user_msg = HashMap::new();
-    user_msg.insert("role".to_string(), "user".to_string());
-    user_msg.insert("content".to_string(), msg.content.clone());
-
-    let mut messages = Vec::new();
-    messages.push(context_msg);
-    messages.push(user_msg);
-
-    let client = OpenAIClient::new(&GlobalConfig::load("config.json").openai_key);
-
-    let resp = client
-        .create_chat_completion(|args| {
-            args.max_tokens(1024)
-                .messages(messages)
-                .model("gpt-3.5-turbo")
-        })
-        .await
-        .unwrap();
-
-    let new_msg = match resp.json.as_object().unwrap().get("error") {
-        Some(error) => {
-            let error = error
-                .as_object()
-                .unwrap()
-                .get("message")
-                .unwrap()
-                .as_str()
-                .unwrap();
-
-            error.to_string()
-        }
-        None => resp.get_content(0).await.unwrap(),
-    };
-
-    msg.reply(&ctx.http, new_msg).await.unwrap();
-    typing.stop().unwrap();
-}
-
-async fn _end(
-    msg: &Message,
-    channel: ChannelId,
-    ctx: &Context,
-    guild_id: Option<GuildId>,
-    config: &mut Value,
-) {
-    let mut chats =
-        std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap())).unwrap();
-    chats = chats.replace(&msg.channel_id.to_string(), "");
-    std::fs::write(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()), chats).unwrap();
-    channel.delete(&ctx.http).await.unwrap();
-    _save(guild_id.unwrap(), config);
-}
-
-async fn _rename(msg: &Message, channel: ChannelId, ctx: &Context) {
-    let name = msg.content.split(' ').nth(1);
-    match name {
-        Some(name) => {
-            channel.edit(&ctx.http, |c| c.name(name)).await.unwrap();
-            msg.reply_ping(&ctx.http, "Channel renamed!").await.unwrap();
-        }
-        None => {
-            let spaces = " ".repeat(msg.content.len() + 1);
-            let error_msg = format!(
-                "```ansi\n{}: No name provided\n
-    {} {} {}
-    {} {}{} {}\n
-    {}: use !rename <name> to rename the channel (eg. !rename cool-channel)```",
-                "error".red().bold(),
-                "|".bold(),
-                msg.content,
-                "__".red().bold(),
-                "|".bold(),
-                spaces,
-                "^^".red().bold(),
-                "expected a name".red().bold(),
-                "= help".bold()
-            );
-
-            msg.reply_ping(&ctx.http, error_msg).await.unwrap();
-        }
-    }
-}
-
-async fn _clear(msg: &Message, channel: ChannelId, ctx: &Context) {
-    let messages = channel
-        .messages(&ctx.http, |builder| builder.limit(100))
-        .await
-        .unwrap();
-
-    for msg in messages {
-        msg.delete(&ctx.http).await.unwrap();
-    }
-    let resp = channel
-        .say(&ctx.http, format!("{} Cleared!", msg.author.mention()))
-        .await
-        .unwrap();
-    thread::sleep(Duration::from_secs(5));
-    resp.delete(&ctx.http).await.unwrap();
-}
-
 async fn _dm_msg(ctx: Context, message: Message) {
     let mut config = Value::Null;
-    _chat(message, ctx, &mut config, None).await;
+    plugins::chat::run(message, ctx, &mut config, None).await;
 }
 
 #[tokio::main]
