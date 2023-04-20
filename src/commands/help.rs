@@ -21,8 +21,10 @@ const ADD_ROLE: &str = "Add a role to a user.";
 const REMOVE_ROLE: &str = "Remove a role from a user.";
 const TIMEOUT: &str = "Timeout a user for a certain time.";
 const XP: &str = "Display your XP.";
-const CONFIG: &str = "Configure the bot.";
+const CONFIG_CMD: &str = "[Deprecated] Configure the bot.";
 const PURGE: &str = "Deletes certain amount of messages.";
+const CHAT: &str = "Creates a channel to chat with the bot.";
+const CONFIG: &str = "Configure the bot. Type `!config` for more information.";
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
     interaction
@@ -45,8 +47,10 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                             .field("/remove-role", REMOVE_ROLE, true)
                             .field("/timeout", TIMEOUT, true)
                             .field("/xp", XP, true)
-                            .field("/config", CONFIG, true)
+                            .field("/config", CONFIG_CMD, true)
                             .field("/purge", PURGE, true)
+                            .field("/chat", CHAT, true)
+                            .field("!config", CONFIG, true)
                             .color(Colour::from_rgb(0, 255, 0))
                     })
                 })
