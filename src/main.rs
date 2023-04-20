@@ -287,9 +287,14 @@ impl EventHandler for Handler {
 
             if let Ok(chats) = chats {
                 if chats.contains(&msg.channel_id.to_string()) {
-                    plugins::chat::run(msg, ctx, &mut config, Some(guild_id)).await;
+                    plugins::chat::run(&msg, &ctx, &mut config, Some(guild_id)).await;
                 }
             }
+        }
+
+        if msg.content.starts_with("!config") {
+            dbg!("Config command");
+            plugins::config::run(&msg, &ctx, &mut config).await;
         }
 
         // Save the config file here
@@ -330,7 +335,7 @@ pub fn _save(guild_id: GuildId, config: &mut Value) {
 
 async fn _dm_msg(ctx: Context, message: Message) {
     let mut config = Value::Null;
-    plugins::chat::run(message, ctx, &mut config, None).await;
+    plugins::chat::run(&message, &ctx, &mut config, None).await;
 }
 
 #[tokio::main]

@@ -15,7 +15,7 @@ use crate::global_config::GlobalConfig;
 const CHAT_PATH: &str = "guilds/chats";
 const CHAT_COMMANDS: [&str; 3] = ["!end", "!rename", "!clear"];
 
-pub async fn run(msg: Message, ctx: Context, config: &mut Value, guild_id: Option<GuildId>) {
+pub async fn run(msg: &Message, ctx: &Context, config: &mut Value, guild_id: Option<GuildId>) {
     let channel = msg.channel_id;
 
     if CHAT_COMMANDS.iter().any(|v| msg.content.starts_with(*v)) && guild_id.is_some() {

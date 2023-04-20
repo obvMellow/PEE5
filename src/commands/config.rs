@@ -68,7 +68,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                     message.embed(|embed| {
                         embed
                             .title("Configuration")
-                            .description(format!("Set `{}` to `{}`", key, value))
+                            .description(format!("Set `{}` to `{}` (This command is deprecated, use `!config` instead.)", key, value))
                             .colour(Colour::LIGHT_GREY)
                     })
                 })
@@ -81,7 +81,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
         .name("config")
-        .description("Configure the bot")
+        .description("[Deprecated] Configure the bot")
         .create_option(|option| {
             option
                 .name("key")
