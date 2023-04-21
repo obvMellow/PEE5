@@ -16,25 +16,9 @@ You can add the bot using this [link](https://top.gg/bot/1087464844288069722?s=0
 
 Also you can self host the bot.
 
-#### Dependencies
--   [Cargo (Automatically installed with setup script)](https://www.rust-lang.org/tools/install)
--   [Python3 (Required for setup.py)](https://www.python.org/downloads/)
-
-#### Setting up
--   Clone this repository
-```sh
-git clone https://github.com/obvMellow/PEE5.git && cd PEE5
-```
--   Run setup script
-```sh
-python3 setup.py
-```
--   Follow the instructions
--   Run the bot
-```sh
-cargo run --release
-```
--   Done!
+- [Install the setup script from releases page.](https://github.com/obvMellow/PEE5/releases/)
+- Run the script and follow the instructions.
+- Done!
 
 ## Developing
 
