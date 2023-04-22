@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use crate::Result;
-use serde_json::Value;
+use pee5::config::GuildConfig;
 use serenity::{
     builder::CreateApplicationCommand,
     model::prelude::{
@@ -44,27 +44,17 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
             Err(e) => panic!("Error creating config file: {}", e),
         };
 
-        let mut config: Value = serde_json::from_reader(config_file).unwrap();
-        let config = config.as_object_mut().unwrap();
+        let mut config = GuildConfig::from_reader(config_file).unwrap();
 
         config
-            .get_mut("afk")
-            .unwrap()
-            .as_object_mut()
-            .unwrap()
-            .insert(
-                interaction.user.id.to_string(),
-                serde_json::json!({
-                    "id": interaction.user.id,
-                    "reason": reason,
-                }),
-            );
+            .get_afk_mut()
+            .insert(interaction.user.id.0, reason.to_string());
 
-        serde_json::to_writer_pretty(
-            File::create(format!("guilds/{}.json", interaction.guild_id.unwrap())).unwrap(),
-            &config,
-        )
-        .unwrap();
+        config
+            .to_writer_pretty(
+                File::create(format!("guilds/{}.json", interaction.guild_id.unwrap())).unwrap(),
+            )
+            .unwrap();
 
         interaction
             .edit_original_interaction_response(&ctx.http, |response| {

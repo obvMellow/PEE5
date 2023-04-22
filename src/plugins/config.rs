@@ -1,13 +1,23 @@
 use std::fs::File;
 
-use serenity::{json::Value, model::prelude::Message, prelude::Context};
+use pee5::config::GuildConfig;
+use serenity::{model::prelude::Message, prelude::Context};
 
-pub async fn run(msg: &Message, ctx: &Context, config: &mut Value) {
-    if !msg
-        .member
-        .as_ref()
+pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
+    let author = &msg.author;
+    let member = msg.guild_id.unwrap().member(&ctx, author.id).await.unwrap();
+    let guild = msg
+        .guild_id
         .unwrap()
-        .permissions
+        .to_partial_guild(&ctx.http)
+        .await
+        .unwrap();
+
+    if !guild
+        .user_permissions_in(
+            &msg.channel(&ctx.http).await.unwrap().guild().unwrap(),
+            &member,
+        )
         .unwrap()
         .manage_guild()
     {
@@ -43,7 +53,7 @@ pub async fn run(msg: &Message, ctx: &Context, config: &mut Value) {
     }
 }
 
-async fn set(msg: &Message, ctx: &Context, config: &mut Value) {
+async fn set(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
     let args = msg.content.split(' ').collect::<Vec<&str>>();
 
     if args.len() < 3 {
@@ -83,10 +93,9 @@ async fn set(msg: &Message, ctx: &Context, config: &mut Value) {
                 return;
             }
 
-            config.as_object_mut().unwrap().insert(
-                "log_channel_id".to_string(),
-                Value::String(channel_id.to_string()),
-            );
+            config
+                .get_log_channel_id_mut()
+                .replace(channel_id.parse::<u64>().unwrap());
 
             serde_json::to_writer_pretty(
                 File::create(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64())).unwrap(),

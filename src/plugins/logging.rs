@@ -1,15 +1,12 @@
-use serde_json::Value;
+use pee5::config::GuildConfig;
 use serenity::{
     model::prelude::{ChannelId, GuildId, Message},
     prelude::{Context, Mentionable},
     utils::Colour,
 };
 
-pub async fn run(ctx: &Context, config: &Value, guild_id: GuildId, msg: &Message) {
-    let log_channel_id: Option<u64> = match config.as_object().unwrap().get("log_channel_id") {
-        Some(v) => Some(v.as_str().unwrap().parse().unwrap()),
-        None => None,
-    };
+pub async fn run(ctx: &Context, config: &GuildConfig, guild_id: GuildId, msg: &Message) {
+    let log_channel_id: Option<u64> = config.get_log_channel_id();
 
     match log_channel_id {
         Some(log_channel_id) => {

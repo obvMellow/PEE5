@@ -3,7 +3,7 @@ use std::{collections::HashMap, thread, time::Duration};
 use colored::Colorize;
 use openai_gpt_rs::client::Client as OpenAIClient;
 use openai_gpt_rs::response::Content;
-use serde_json::Value;
+use pee5::config::GuildConfig;
 use serenity::{
     model::prelude::{ChannelId, GuildId, Message},
     prelude::{Context, Mentionable},
@@ -15,7 +15,7 @@ use crate::global_config::GlobalConfig;
 const CHAT_PATH: &str = "guilds/chats";
 const CHAT_COMMANDS: [&str; 3] = ["!end", "!rename", "!clear"];
 
-pub async fn run(msg: &Message, ctx: &Context, config: &mut Value, guild_id: Option<GuildId>) {
+pub async fn run(msg: &Message, ctx: &Context, config: &GuildConfig, guild_id: Option<GuildId>) {
     let channel = msg.channel_id;
 
     if CHAT_COMMANDS.iter().any(|v| msg.content.starts_with(*v)) && guild_id.is_some() {
@@ -103,13 +103,17 @@ async fn _end(
     channel: ChannelId,
     ctx: &Context,
     guild_id: Option<GuildId>,
-    config: &mut Value,
+    config: &GuildConfig,
 ) {
     let mut chats =
         std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap())).unwrap();
+
     chats = chats.replace(&msg.channel_id.to_string(), "");
+
     std::fs::write(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()), chats).unwrap();
+
     channel.delete(&ctx.http).await.unwrap();
+
     _save(guild_id.unwrap(), config);
 }
 

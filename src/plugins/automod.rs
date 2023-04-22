@@ -1,40 +1,25 @@
 use std::time::Duration;
 
-use serde_json::Value;
+use pee5::config::GuildConfig;
 use serenity::{
     model::prelude::Message,
     prelude::{Context, Mentionable},
     utils::Colour,
 };
 
-pub async fn run(msg: &Message, ctx: &Context, config: &Value) -> bool {
+pub async fn run(msg: &Message, ctx: &Context, config: &GuildConfig) -> bool {
     let mut deleted = false;
 
-    let automod = config
-        .as_object()
-        .unwrap()
-        .get("automod")
-        .unwrap()
-        .as_bool()
-        .unwrap();
+    let automod = config.get_automod();
 
     if automod {
-        let blacklisted_words = config
-            .as_object()
-            .unwrap()
-            .get("blacklisted_words")
-            .unwrap()
-            .as_array()
-            .unwrap();
+        let blacklisted_words = config.get_blacklisted_words();
 
         let mut contained_words: Vec<String> = Vec::new();
 
         for word in blacklisted_words {
-            if msg
-                .content
-                .contains(word.as_str().unwrap().to_lowercase().trim())
-            {
-                contained_words.append(&mut vec![word.as_str().unwrap().to_string()]);
+            if msg.content.contains(word.as_str().to_lowercase().trim()) {
+                contained_words.append(&mut vec![word.as_str().to_string()]);
             }
         }
 

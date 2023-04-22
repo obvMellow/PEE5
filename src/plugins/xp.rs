@@ -1,16 +1,12 @@
-use serde_json::Value;
+use pee5::config::GuildConfig;
 use serenity::model::prelude::Message;
 
-pub fn run(msg: &Message, config: &mut Value) {
-    let users = config.as_object_mut().unwrap().get_mut("users").unwrap();
+pub fn run(msg: &Message, config: &mut GuildConfig) {
+    let users = config.get_users_mut();
 
-    let xp_gain = 100;
+    let xp_gain: usize = 100;
 
-    let xp = users
-        .as_object_mut()
-        .unwrap()
-        .get_mut(&msg.author.id.to_string())
-        .unwrap();
+    let xp = users.get_mut(&msg.author.id.0).unwrap();
 
-    *xp = (xp.as_u64().unwrap() + xp_gain).into();
+    *xp = (*xp + xp_gain).into();
 }

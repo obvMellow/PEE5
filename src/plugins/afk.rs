@@ -1,32 +1,15 @@
-use serde_json::Value;
+use pee5::config::GuildConfig;
 use serenity::{
     model::prelude::Message,
     prelude::{Context, Mentionable},
     utils::Colour,
 };
 
-pub async fn run(msg: &Message, ctx: &Context, config: &mut Value) {
-    let afk = config.as_object_mut().unwrap().get_mut("afk").unwrap();
+pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
+    let afk = config.get_afk_mut();
 
     for mention in &msg.mentions {
-        if afk
-            .as_object()
-            .unwrap()
-            .get(&mention.id.to_string())
-            .is_some()
-        {
-            let reason = afk
-                .as_object()
-                .unwrap()
-                .get(&mention.id.to_string())
-                .unwrap()
-                .as_object()
-                .unwrap()
-                .get("reason")
-                .unwrap()
-                .as_str()
-                .unwrap();
-
+        if let Some(reason) = afk.get(&mention.id.0) {
             msg.channel_id
                 .send_message(&ctx.http, |message| {
                     message
@@ -43,15 +26,8 @@ pub async fn run(msg: &Message, ctx: &Context, config: &mut Value) {
     }
 
     // Check if the user is afk
-    if afk
-        .as_object()
-        .unwrap()
-        .get(&msg.author.id.to_string())
-        .is_some()
-    {
-        afk.as_object_mut()
-            .unwrap()
-            .remove(&msg.author.id.to_string());
+    if let Some(_) = afk.get(&msg.author.id.0) {
+        afk.remove(&msg.author.id.0);
 
         msg.channel_id
             .send_message(&ctx.http, |message| {

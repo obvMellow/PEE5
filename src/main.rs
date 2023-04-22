@@ -4,7 +4,7 @@ mod plugins;
 
 use colored::Colorize;
 use global_config::GlobalConfig;
-use serde_json::Value;
+use pee5::config::GuildConfig;
 use serenity::async_trait;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
@@ -206,17 +206,7 @@ impl EventHandler for Handler {
                 Err(e) => panic!("Error creating config file: {}", e),
             };
 
-            serde_json::to_writer_pretty(
-                file,
-                &serde_json::json!({
-                    "id": guild.id,
-                    "users": {},
-                    "automod": false,
-                    "blacklisted_words": [],
-                    "afk": {},
-                }),
-            )
-            .unwrap();
+            GuildConfig::new(guild.id).to_writer_pretty(file).unwrap();
 
             println!(
                 "{} config file for guild {}",
@@ -253,20 +243,12 @@ impl EventHandler for Handler {
         let guild_id = msg.guild_id.unwrap();
 
         let config_file = File::open(format!("guilds/{}.json", guild_id)).unwrap();
-        let mut config: Value = serde_json::from_reader(&config_file).unwrap();
+        let mut config = GuildConfig::from_reader(config_file).unwrap();
 
-        let users = config.as_object_mut().unwrap().get_mut("users").unwrap();
+        let users = config.get_users_mut();
 
-        if users
-            .as_object()
-            .unwrap()
-            .get(&msg.author.id.to_string())
-            .is_none()
-        {
-            users
-                .as_object_mut()
-                .unwrap()
-                .insert(msg.author.id.to_string(), 0.into());
+        if users.get(&msg.author.id.as_u64()).is_none() {
+            users.insert(msg.author.id.0, 0);
         }
 
         // Do the logging here
@@ -287,7 +269,7 @@ impl EventHandler for Handler {
 
             if let Ok(chats) = chats {
                 if chats.contains(&msg.channel_id.to_string()) {
-                    plugins::chat::run(&msg, &ctx, &mut config, Some(guild_id)).await;
+                    plugins::chat::run(&msg, &ctx, &config, Some(guild_id)).await;
                 }
             }
         }
@@ -298,7 +280,7 @@ impl EventHandler for Handler {
         }
 
         // Save the config file here
-        _save(guild_id, &mut config);
+        _save(guild_id, &config);
     }
 
     async fn guild_create(&self, _ctx: Context, guild: Guild) {
@@ -313,29 +295,19 @@ impl EventHandler for Handler {
             Err(e) => panic!("Error creating config file: {}", e),
         };
 
-        serde_json::to_writer_pretty(
-            file,
-            &serde_json::json!({
-                "id": guild.id,
-                "users": {},
-                "automod": false,
-                "blacklisted_words": [],
-                "afk": {},
-            }),
-        )
-        .unwrap();
+        GuildConfig::new(guild.id).to_writer_pretty(file).unwrap();
     }
 }
 
-pub fn _save(guild_id: GuildId, config: &mut Value) {
+pub fn _save(guild_id: GuildId, config: &GuildConfig) {
     let config_file = File::create(format!("guilds/{}.json", guild_id)).unwrap();
 
-    serde_json::to_writer_pretty(config_file, &config).unwrap();
+    config.to_writer_pretty(config_file).unwrap();
 }
 
 async fn _dm_msg(ctx: Context, message: Message) {
-    let mut config = Value::Null;
-    plugins::chat::run(&message, &ctx, &mut config, None).await;
+    let config = GuildConfig::new(0 as u64);
+    plugins::chat::run(&message, &ctx, &config, None).await;
 }
 
 #[tokio::main]
