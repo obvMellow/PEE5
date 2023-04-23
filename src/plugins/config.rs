@@ -3,6 +3,8 @@ use std::fs::File;
 use pee5::config::GuildConfig;
 use serenity::{model::prelude::Message, prelude::Context};
 
+use crate::error_constructor;
+
 pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
     let author = &msg.author;
     let member = msg.guild_id.unwrap().member(&ctx, author.id).await.unwrap();
@@ -21,7 +23,7 @@ pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
         .unwrap()
         .manage_guild()
     {
-        let content = format!("```error: You do not have permission to use this command```");
+        let content = error_constructor!("You do not have permission to use this command```");
         msg.reply_ping(&ctx.http, content).await.unwrap();
         return;
     }
@@ -40,14 +42,8 @@ pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
             set(msg, ctx, config).await;
         }
         _ => {
-            let content = _error_constructor(
-                &msg.content,
-                "Invalid command",
-                "expected a valid command",
-                -(command.len() as isize + 1),
-                None,
-                command.len(),
-            );
+            let content =
+                error_constructor!(config command, "Invalid command", "expected a valid command");
             msg.reply_ping(&ctx.http, content).await.unwrap();
         }
     }
@@ -66,13 +62,11 @@ async fn set(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
     match key {
         "log_channel" => {
             if args.len() < 4 {
-                let content = _error_constructor(
-                    &msg.content,
-                    "No arguments given",
-                    "expected an argument",
-                    0,
-                    None,
-                    2,
+                let content = error_constructor!(
+                    format!("!config set {}", key),
+                    "__",
+                    "Missing argument",
+                    "expected a channel mention"
                 );
                 msg.reply_ping(&ctx.http, content).await.unwrap();
                 return;
@@ -81,13 +75,11 @@ async fn set(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
             let channel_id = args[3].replace("<", "").replace(">", "").replace("#", "");
 
             if let Err(_) = channel_id.parse::<u64>() {
-                let content = _error_constructor(
-                    &msg.content,
-                    "Invalid channel id",
-                    "expected an unsigned 64-bit integer",
-                    -(channel_id.len() as isize + 1),
-                    None,
-                    channel_id.len(),
+                let content = error_constructor!(
+                    format!("!config set {}", key),
+                    channel_id,
+                    "Invalid argument",
+                    "expected a channel mention"
                 );
                 msg.reply_ping(&ctx.http, content).await.unwrap();
                 return;
@@ -108,14 +100,8 @@ async fn set(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
                 .unwrap();
         }
         _ => {
-            let content = _error_constructor(
-                &msg.content,
-                "Invalid key",
-                "expected a valid key",
-                -(key.len() as isize + 1),
-                None,
-                key.len(),
-            );
+            let content =
+                error_constructor!(config set key, "Invalid argument", "expected a valid argument");
             msg.reply_ping(&ctx.http, content).await.unwrap();
             return;
         }
@@ -137,37 +123,4 @@ async fn help(msg: &Message, ctx: &Context) {
     );
 
     msg.reply_ping(&ctx.http, content).await.unwrap();
-}
-
-fn _error_constructor(
-    command: &str,
-    error_msg: &str,
-    reason: &str,
-    offset: isize,
-    help_msg: Option<&str>,
-    upper_arrow_amount: usize,
-) -> String {
-    let spaces = " ".repeat(command.len());
-    let offsetted = " ".repeat((spaces.len() as isize + offset) as usize);
-    let mut msg = format!(
-        "```
-error: {}
-
-    | {}
-    | {} {} {}
-    \n",
-        error_msg,
-        command,
-        offsetted,
-        "^".repeat(upper_arrow_amount),
-        reason
-    );
-
-    if let Some(help_msg) = help_msg {
-        msg.push_str(&format!("=help: {}\n", help_msg));
-    }
-
-    msg.push_str("```");
-
-    msg
 }
