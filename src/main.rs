@@ -291,7 +291,6 @@ impl EventHandler for Handler {
         }
 
         if msg.content.starts_with("!config") {
-            dbg!("Config command");
             plugins::config::run(&msg, &ctx, &mut config).await;
         }
 

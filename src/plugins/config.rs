@@ -1,6 +1,4 @@
-use std::fs::File;
-
-use pee5::config::GuildConfig;
+use pee5::config::{GuildConfig, Plugins};
 use serenity::{model::prelude::Message, prelude::Context};
 
 use crate::error_constructor;
@@ -40,6 +38,9 @@ pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
     match command {
         "set" => {
             set(msg, ctx, config).await;
+        }
+        "enable-plugin" => {
+            enable_plugin(msg, ctx, config).await;
         }
         _ => {
             let content =
@@ -89,11 +90,9 @@ async fn set(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
                 .get_log_channel_id_mut()
                 .replace(channel_id.parse::<u64>().unwrap());
 
-            serde_json::to_writer_pretty(
-                File::create(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64())).unwrap(),
-                &config,
-            )
-            .unwrap();
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
 
             msg.reply_ping(&ctx.http, format!("Set `{}` to <#{}>", key, channel_id))
                 .await
@@ -108,18 +107,171 @@ async fn set(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
     }
 }
 
+async fn enable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
+    let args = msg.content.split(' ').collect::<Vec<&str>>();
+
+    if args.len() < 3 {
+        help(msg, ctx).await;
+        return;
+    }
+
+    let plugin = args[2];
+
+    match plugin {
+        "afk" => {
+            let plugins = config.get_plugins_mut();
+
+            if plugins.contains(&Plugins::Afk) {
+                let content = error_constructor!(
+                    format!("!config enable-plugin {}", plugin),
+                    plugin,
+                    "Plugin already enabled",
+                    "expected a disabled plugin"
+                );
+                msg.reply_ping(&ctx.http, content).await.unwrap();
+                return;
+            }
+
+            plugins.push(Plugins::Afk);
+
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
+
+            msg.reply_ping(&ctx.http, format!("Enabled plugin `{}`", plugin))
+                .await
+                .unwrap();
+        }
+        "automod" => {
+            let plugins = config.get_plugins_mut();
+
+            if plugins.contains(&Plugins::Automod) {
+                let content = error_constructor!(
+                    format!("!config enable-plugin {}", plugin),
+                    plugin,
+                    "Plugin already enabled",
+                    "expected a disabled plugin"
+                );
+                msg.reply_ping(&ctx.http, content).await.unwrap();
+                return;
+            }
+
+            plugins.push(Plugins::Automod);
+
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
+
+            msg.reply_ping(&ctx.http, format!("Enabled plugin `{}`", plugin))
+                .await
+                .unwrap();
+        }
+        "chat" => {
+            let plugins = config.get_plugins_mut();
+
+            if plugins.contains(&Plugins::Chat) {
+                let content = error_constructor!(
+                    format!("!config enable-plugin {}", plugin),
+                    plugin,
+                    "Plugin already enabled",
+                    "expected a disabled plugin"
+                );
+                msg.reply_ping(&ctx.http, content).await.unwrap();
+                return;
+            }
+
+            plugins.push(Plugins::Chat);
+
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
+
+            msg.reply_ping(&ctx.http, format!("Enabled plugin `{}`", plugin))
+                .await
+                .unwrap();
+        }
+        "logging" => {
+            let plugins = config.get_plugins_mut();
+
+            if plugins.contains(&Plugins::Logging) {
+                let content = error_constructor!(
+                    format!("!config enable-plugin {}", plugin),
+                    plugin,
+                    "Plugin already enabled",
+                    "expected a disabled plugin"
+                );
+                msg.reply_ping(&ctx.http, content).await.unwrap();
+                return;
+            }
+
+            plugins.push(Plugins::Logging);
+
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
+
+            msg.reply_ping(&ctx.http, format!("Enabled plugin `{}`", plugin))
+                .await
+                .unwrap();
+        }
+        "xp" => {
+            let plugins = config.get_plugins_mut();
+
+            if plugins.contains(&Plugins::Xp) {
+                let content = error_constructor!(
+                    format!("!config enable-plugin {}", plugin),
+                    plugin,
+                    "Plugin already enabled",
+                    "expected a disabled plugin"
+                );
+                msg.reply_ping(&ctx.http, content).await.unwrap();
+                return;
+            }
+
+            plugins.push(Plugins::Xp);
+
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
+
+            msg.reply_ping(&ctx.http, format!("Enabled plugin `{}`", plugin))
+                .await
+                .unwrap();
+        }
+        _ => {
+            let content = error_constructor!(
+                config enable plugin plugin,
+                "Invalid argument",
+                "expected a valid argument"
+            );
+            msg.reply_ping(&ctx.http, content).await.unwrap();
+            return;
+        }
+    }
+}
+
 async fn help(msg: &Message, ctx: &Context) {
     let content = format!(
         "**!config [KEYWORD] [ARGUMENTS]**
     
 **Keywords:**
     `set` - Sets a config value
+    `enable-plugin` - Enables a plugin
 
 **Arguments:**
     `log_channel` - Sets the log channel
     
     **Example:**
-        `!config set log_channel #general`"
+        `!config set log_channel #general`
+        
+    `afk` - Enables the AFK plugin
+    `automod` - Enables the Automod plugin
+    `chat` - Enables the Chat plugin
+    `logging` - Enables the Logging plugin
+    `xp` - Enables the XP plugin
+    
+    **Example:**
+        `!config enable-plugin afk`"
     );
 
     msg.reply_ping(&ctx.http, content).await.unwrap();
