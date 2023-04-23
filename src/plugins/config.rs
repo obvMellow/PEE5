@@ -42,6 +42,9 @@ pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
         "enable-plugin" => {
             enable_plugin(msg, ctx, config).await;
         }
+        "disable-plugin" => {
+            disable_plugin(msg, ctx, config).await;
+        }
         _ => {
             let content =
                 error_constructor!(config command, "Invalid command", "expected a valid command");
@@ -241,6 +244,149 @@ async fn enable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
         _ => {
             let content = error_constructor!(
                 config enable plugin plugin,
+                "Invalid argument",
+                "expected a valid argument"
+            );
+            msg.reply_ping(&ctx.http, content).await.unwrap();
+            return;
+        }
+    }
+}
+
+async fn disable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
+    let args = msg.content.split(' ').collect::<Vec<&str>>();
+
+    if args.len() < 3 {
+        help(msg, ctx).await;
+        return;
+    }
+
+    let plugin = args[2];
+
+    match plugin {
+        "afk" => {
+            let plugins = config.get_plugins_mut();
+
+            if !plugins.contains(&Plugins::Afk) {
+                let content = error_constructor!(
+                    format!("!config disable-plugin {}", plugin),
+                    plugin,
+                    "Plugin already disabled",
+                    "expected an enabled plugin"
+                );
+                msg.reply_ping(&ctx.http, content).await.unwrap();
+                return;
+            }
+
+            plugins.retain(|&x| x != Plugins::Afk);
+
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
+
+            msg.reply_ping(&ctx.http, format!("Disabled plugin `{}`", plugin))
+                .await
+                .unwrap();
+        }
+        "automod" => {
+            let plugins = config.get_plugins_mut();
+
+            if !plugins.contains(&Plugins::Automod) {
+                let content = error_constructor!(
+                    format!("!config disable-plugin {}", plugin),
+                    plugin,
+                    "Plugin already disabled",
+                    "expected an enabled plugin"
+                );
+                msg.reply_ping(&ctx.http, content).await.unwrap();
+                return;
+            }
+
+            plugins.retain(|&x| x != Plugins::Automod);
+
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
+
+            msg.reply_ping(&ctx.http, format!("Disabled plugin `{}`", plugin))
+                .await
+                .unwrap();
+        }
+        "chat" => {
+            let plugins = config.get_plugins_mut();
+
+            if !plugins.contains(&Plugins::Chat) {
+                let content = error_constructor!(
+                    format!("!config disable-plugin {}", plugin),
+                    plugin,
+                    "Plugin already disabled",
+                    "expected an enabled plugin"
+                );
+                msg.reply_ping(&ctx.http, content).await.unwrap();
+                return;
+            }
+
+            plugins.retain(|&x| x != Plugins::Chat);
+
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
+
+            msg.reply_ping(&ctx.http, format!("Disabled plugin `{}`", plugin))
+                .await
+                .unwrap();
+        }
+        "logging" => {
+            let plugins = config.get_plugins_mut();
+
+            if !plugins.contains(&Plugins::Logging) {
+                let content = error_constructor!(
+                    format!("!config disable-plugin {}", plugin),
+                    plugin,
+                    "Plugin already disabled",
+                    "expected an enabled plugin"
+                );
+                msg.reply_ping(&ctx.http, content).await.unwrap();
+                return;
+            }
+
+            plugins.retain(|&x| x != Plugins::Logging);
+
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
+
+            msg.reply_ping(&ctx.http, format!("Disabled plugin `{}`", plugin))
+                .await
+                .unwrap();
+        }
+        "xp" => {
+            let plugins = config.get_plugins_mut();
+
+            if !plugins.contains(&Plugins::Xp) {
+                let content = error_constructor!(
+                    format!("!config disable-plugin {}", plugin),
+                    plugin,
+                    "Plugin already disabled",
+                    "expected an enabled plugin"
+                );
+                msg.reply_ping(&ctx.http, content).await.unwrap();
+                return;
+            }
+
+            plugins.retain(|&x| x != Plugins::Xp);
+
+            config
+                .save(format!("guilds/{}.json", msg.guild_id.unwrap().as_u64()))
+                .unwrap();
+
+            msg.reply_ping(&ctx.http, format!("Disabled plugin `{}`", plugin))
+                .await
+                .unwrap();
+        }
+        _ => {
+            let content = error_constructor!(
+                config disable plugin plugin,
                 "Invalid argument",
                 "expected a valid argument"
             );

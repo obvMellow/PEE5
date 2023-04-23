@@ -8,7 +8,7 @@ pub enum Error {
     Json(serde_json::Error),
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Copy)]
 pub enum Plugins {
     Afk,
     Automod,

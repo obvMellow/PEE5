@@ -19,6 +19,14 @@ macro_rules! error_constructor {
     (config enable plugin $argument:expr, $error_msg:expr, $explanation:expr) => {
         error_constructor!("!config enable-plugin", $argument, $error_msg, $explanation)
     };
+    (config disable plugin $argument:expr, $error_msg:expr, $explanation:expr) => {
+        error_constructor!(
+            "!config disable-plugin",
+            $argument,
+            $error_msg,
+            $explanation
+        )
+    };
     ($command:expr, $argument:expr, $error_msg:expr, $explanation:expr) => {{
         let mut base = error_constructor!($error_msg);
 
