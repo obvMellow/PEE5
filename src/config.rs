@@ -1,6 +1,12 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::File, path::Path};
+
+#[derive(Debug)]
+pub enum Error {
+    Io(std::io::Error),
+    Json(serde_json::Error),
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GuildConfig {
@@ -59,6 +65,21 @@ impl GuildConfig {
         W: std::io::Write,
     {
         serde_json::to_writer_pretty(writer, &self)
+    }
+
+    pub fn save<P>(&self, path: P) -> Result<(), Error>
+    where
+        P: AsRef<Path>,
+    {
+        let file = match File::create(path) {
+            Ok(v) => v,
+            Err(e) => return Err(Error::Io(e)),
+        };
+
+        match self.to_writer_pretty(file) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::Json(e)),
+        }
     }
 
     pub fn get_automod(&self) -> bool {

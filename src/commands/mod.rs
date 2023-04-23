@@ -11,6 +11,7 @@ pub mod help;
 pub mod imagine;
 pub mod purge;
 pub mod remove_role;
+pub mod remove_warn;
 pub mod saved_imagines;
 pub mod timeout;
 pub mod warn;

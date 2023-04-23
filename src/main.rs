@@ -9,7 +9,7 @@ use serenity::async_trait;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
-use serenity::model::prelude::{Activity, Guild, GuildId, Message};
+use serenity::model::prelude::{Activity, Guild, Message};
 use serenity::prelude::*;
 use serenity::utils::Colour;
 use std::fs::{self, File};
@@ -49,6 +49,7 @@ impl EventHandler for Handler {
                 "warn" => commands::warn::run(&ctx, &command).await,
                 "warns" => commands::warns::run(&ctx, &command).await,
                 "chat" => commands::chat::run(&ctx, &command).await,
+                "remove_warn" => commands::remove_warn::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -189,6 +190,11 @@ impl EventHandler for Handler {
             })
             .await
             .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::remove_warn::register(command)
+            })
+            .await
+            .unwrap(),
         ];
 
         // Create guild config files here
@@ -280,7 +286,7 @@ impl EventHandler for Handler {
         }
 
         // Save the config file here
-        _save(guild_id, &config);
+        config.save(format!("guilds/{}.json", guild_id)).unwrap();
     }
 
     async fn guild_create(&self, _ctx: Context, guild: Guild) {
@@ -297,12 +303,6 @@ impl EventHandler for Handler {
 
         GuildConfig::new(guild.id).to_writer_pretty(file).unwrap();
     }
-}
-
-pub fn _save(guild_id: GuildId, config: &GuildConfig) {
-    let config_file = File::create(format!("guilds/{}.json", guild_id)).unwrap();
-
-    config.to_writer_pretty(config_file).unwrap();
 }
 
 async fn _dm_msg(ctx: Context, message: Message) {

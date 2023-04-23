@@ -9,7 +9,6 @@ use serenity::{
     prelude::{Context, Mentionable},
 };
 
-use crate::_save;
 use crate::global_config::GlobalConfig;
 
 const CHAT_PATH: &str = "guilds/chats";
@@ -114,7 +113,7 @@ async fn _end(
 
     channel.delete(&ctx.http).await.unwrap();
 
-    _save(guild_id.unwrap(), config);
+    config.save(format!("guilds/{}.json", guild_id.unwrap())).unwrap();
 }
 
 async fn _rename(msg: &Message, channel: ChannelId, ctx: &Context) {
