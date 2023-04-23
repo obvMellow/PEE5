@@ -8,6 +8,50 @@ pub enum Error {
     Json(serde_json::Error),
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+pub enum Plugins {
+    Afk,
+    Automod,
+    Chat,
+    Logging,
+    Xp,
+}
+
+pub trait IsPlugin {
+    fn afk(&self) -> bool;
+    fn automod(&self) -> bool;
+    fn chat(&self) -> bool;
+    fn logging(&self) -> bool;
+    fn xp(&self) -> bool;
+}
+
+impl IsPlugin for Vec<Plugins> {
+    /// Shorthand for checking if afk plugin is enabled.
+    fn afk(&self) -> bool {
+        self.contains(&Plugins::Afk)
+    }
+
+    /// Shorthand for checking if automod plugin is enabled.
+    fn automod(&self) -> bool {
+        self.contains(&Plugins::Automod)
+    }
+
+    /// Shorthand for checking if chat plugin is enabled.
+    fn chat(&self) -> bool {
+        self.contains(&Plugins::Chat)
+    }
+
+    /// Shorthand for checking if logging plugin is enabled.
+    fn logging(&self) -> bool {
+        self.contains(&Plugins::Logging)
+    }
+
+    /// Shorthand for checking if xp plugin is enabled.
+    fn xp(&self) -> bool {
+        self.contains(&Plugins::Xp)
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GuildConfig {
     automod: bool,
@@ -16,6 +60,7 @@ pub struct GuildConfig {
     log_channel_id: Option<u64>,
     users: HashMap<u64, usize>,
     afk: HashMap<u64, String>,
+    plugins: Vec<Plugins>,
 }
 
 impl GuildConfig {
@@ -27,6 +72,7 @@ impl GuildConfig {
             log_channel_id: None,
             users: HashMap::new(),
             afk: HashMap::new(),
+            plugins: Vec::new(),
         }
     }
 
@@ -124,5 +170,13 @@ impl GuildConfig {
 
     pub fn get_afk_mut(&mut self) -> &mut HashMap<u64, String> {
         &mut self.afk
+    }
+
+    pub fn get_plugins(&self) -> &Vec<Plugins> {
+        &self.plugins
+    }
+
+    pub fn get_plugins_mut(&mut self) -> &mut Vec<Plugins> {
+        &mut self.plugins
     }
 }

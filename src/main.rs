@@ -4,7 +4,7 @@ mod plugins;
 
 use colored::Colorize;
 use global_config::GlobalConfig;
-use pee5::config::GuildConfig;
+use pee5::config::{GuildConfig, IsPlugin};
 use serenity::async_trait;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
@@ -258,23 +258,33 @@ impl EventHandler for Handler {
         }
 
         // Do the logging here
-        plugins::logging::run(&ctx, &config, guild_id, &msg).await;
+        if config.get_plugins().logging() {
+            plugins::logging::run(&ctx, &config, guild_id, &msg).await;
+        }
 
         // Moderate the message here
-        let deleted = plugins::automod::run(&msg, &ctx, &config).await;
+        let mut deleted = false;
+
+        if config.get_plugins().automod() {
+            deleted = plugins::automod::run(&msg, &ctx, &config).await;
+        }
 
         if !deleted {
             // Give the user some xp here
-            plugins::xp::run(&msg, &mut config);
+            if config.get_plugins().xp() {
+                plugins::xp::run(&msg, &mut config);
+            }
 
             // Afk plugin here
-            plugins::afk::run(&msg, &ctx, &mut config).await;
+            if config.get_plugins().afk() {
+                plugins::afk::run(&msg, &ctx, &mut config).await;
+            }
 
             // Reply if the message is sent in a chat
             let chats = std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()));
 
             if let Ok(chats) = chats {
-                if chats.contains(&msg.channel_id.to_string()) {
+                if chats.contains(&msg.channel_id.to_string()) && config.get_plugins().chat() {
                     plugins::chat::run(&msg, &ctx, &config, Some(guild_id)).await;
                 }
             }
