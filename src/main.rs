@@ -50,6 +50,7 @@ impl EventHandler for Handler {
                 "warns" => commands::warns::run(&ctx, &command).await,
                 "chat" => commands::chat::run(&ctx, &command).await,
                 "remove_warn" => commands::remove_warn::run(&ctx, &command).await,
+                "download_video" => commands::download_video::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -192,6 +193,11 @@ impl EventHandler for Handler {
             .unwrap(),
             Command::create_global_application_command(&ctx.http, |command| {
                 commands::remove_warn::register(command)
+            })
+            .await
+            .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::download_video::register(command)
             })
             .await
             .unwrap(),

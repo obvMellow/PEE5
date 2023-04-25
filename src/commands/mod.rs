@@ -16,4 +16,5 @@ pub mod saved_imagines;
 pub mod timeout;
 pub mod warn;
 pub mod warns;
+pub mod download_video;
 pub mod xp;
