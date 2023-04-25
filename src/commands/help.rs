@@ -25,6 +25,7 @@ const CONFIG_CMD: &str = "[Deprecated] Configure the bot.";
 const PURGE: &str = "Deletes certain amount of messages.";
 const CHAT: &str = "Creates a channel to chat with the bot.";
 const CONFIG: &str = "Configure the bot. Type `!config` for more information.";
+const DOWNLOAD_VIDEO: &str = "Download a video from YouTube.";
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
     interaction
@@ -51,6 +52,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                             .field("/purge", PURGE, true)
                             .field("/chat", CHAT, true)
                             .field("!config", CONFIG, true)
+                            .field("/download-video", DOWNLOAD_VIDEO, true)
                             .color(Colour::from_rgb(0, 255, 0))
                     })
                 })
