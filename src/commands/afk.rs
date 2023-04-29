@@ -1,20 +1,41 @@
 use std::fs::File;
 
 use crate::Result;
-use pee5::config::GuildConfig;
+use pee5::config::{GuildConfig, IsPlugin};
 use serenity::{
     builder::CreateApplicationCommand,
     model::prelude::{
         command::CommandOptionType,
         interaction::{
             application_command::{ApplicationCommandInteraction, CommandDataOptionValue},
-            InteractionResponseType,
+            InteractionResponseType, MessageFlags,
         },
     },
     prelude::Context,
 };
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
+    let config = GuildConfig::from_reader(
+        File::open(format!("guilds/{}.json", interaction.guild_id.unwrap())).unwrap(),
+    )
+    .unwrap();
+
+    if !config.get_plugins().afk() {
+        interaction
+            .create_interaction_response(&ctx.http, |response| {
+                response
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|message| {
+                        message.content(format!(
+                            "The AFK plugin is disabled on this server. Please contact an administrator to enable it."
+                        )).flags(MessageFlags::EPHEMERAL)
+                    })
+            })
+            .await?;
+
+        return Ok(());
+    }
+
     let reason = interaction
         .data
         .options
