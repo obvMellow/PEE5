@@ -1,6 +1,10 @@
-use std::{fs::OpenOptions, io::Write};
+use std::{
+    fs::{File, OpenOptions},
+    io::Write,
+};
 
 use crate::Result;
+use pee5::config::{GuildConfig, IsPlugin};
 use rand::{distributions::Alphanumeric, Rng};
 use serenity::{
     builder::CreateApplicationCommand,
@@ -22,6 +26,30 @@ const CHAT_PATH: &str = "guilds/chats";
 const BOT_ID: u64 = 1087464844288069722;
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
+    let config = GuildConfig::from_reader(
+        File::open(format!(
+            "guilds/{}.json",
+            interaction.guild_id.unwrap().as_u64()
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+
+    if !config.get_plugins().chat() {
+        interaction
+            .create_interaction_response(&ctx.http, |response| {
+                response
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|message| {
+                        message
+                            .content("This server has chat disabled.")
+                            .flags(MessageFlags::EPHEMERAL)
+                    })
+            })
+            .await?;
+        return Ok(());
+    }
+
     let private = interaction.data.options.iter().any(|option| {
         option.name == "private" && option.value.as_ref().unwrap().as_bool().unwrap_or_default()
     });
