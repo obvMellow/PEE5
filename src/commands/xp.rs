@@ -1,29 +1,39 @@
 use std::fs::File;
 
 use crate::Result;
-use serde_json::Value;
+use pee5::config::{GuildConfig, IsPlugin};
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::interaction::InteractionResponseType;
+use serenity::model::prelude::interaction::{InteractionResponseType, MessageFlags};
 use serenity::prelude::Context;
 use serenity::utils::Colour;
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
-    let config_file =
-        File::open(format!("guilds/{}.json", interaction.guild_id.unwrap().0)).unwrap();
-    let config = serde_json::from_reader::<File, Value>(config_file).unwrap();
+    let config = GuildConfig::from_reader(
+        File::open(format!("guilds/{}.json", interaction.guild_id.unwrap().0)).unwrap(),
+    )
+    .unwrap();
+
+    if !config.get_plugins().xp() {
+        interaction
+            .create_interaction_response(&ctx.http, |response| {
+                response
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|message| {
+                        message
+                            .content("This plugin is disabled")
+                            .flags(MessageFlags::EPHEMERAL)
+                    })
+            })
+            .await?;
+
+        return Ok(());
+    }
 
     let xp = config
-        .as_object()
-        .unwrap()
-        .get("users")
-        .unwrap()
-        .as_object()
-        .unwrap()
-        .get(&interaction.user.id.to_string())
-        .unwrap()
-        .as_u64()
-        .unwrap();
+        .get_users()
+        .get(&interaction.user.id.0)
+        .unwrap_or(&(0 as usize));
 
     interaction
         .create_interaction_response(&ctx.http, |response| {
