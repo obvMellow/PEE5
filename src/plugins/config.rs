@@ -126,7 +126,7 @@ async fn enable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
 
             if plugins.contains(&Plugins::Afk) {
                 let content = error_constructor!(
-                    format!("!config enable-plugin {}", plugin),
+                    "!config enable-plugin",
                     plugin,
                     "Plugin already enabled",
                     "expected a disabled plugin"
@@ -150,7 +150,7 @@ async fn enable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
 
             if plugins.contains(&Plugins::Automod) {
                 let content = error_constructor!(
-                    format!("!config enable-plugin {}", plugin),
+                    "!config enable-plugin",
                     plugin,
                     "Plugin already enabled",
                     "expected a disabled plugin"
@@ -174,7 +174,7 @@ async fn enable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
 
             if plugins.contains(&Plugins::Chat) {
                 let content = error_constructor!(
-                    format!("!config enable-plugin {}", plugin),
+                    "!config enable-plugin",
                     plugin,
                     "Plugin already enabled",
                     "expected a disabled plugin"
@@ -198,7 +198,7 @@ async fn enable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
 
             if plugins.contains(&Plugins::Logging) {
                 let content = error_constructor!(
-                    format!("!config enable-plugin {}", plugin),
+                    "!config enable-plugin",
                     plugin,
                     "Plugin already enabled",
                     "expected a disabled plugin"
@@ -222,7 +222,7 @@ async fn enable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
 
             if plugins.contains(&Plugins::Xp) {
                 let content = error_constructor!(
-                    format!("!config enable-plugin {}", plugin),
+                    "!config enable-plugin",
                     plugin,
                     "Plugin already enabled",
                     "expected a disabled plugin"
@@ -269,7 +269,7 @@ async fn disable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) 
 
             if !plugins.contains(&Plugins::Afk) {
                 let content = error_constructor!(
-                    format!("!config disable-plugin {}", plugin),
+                    "!config disable-plugin",
                     plugin,
                     "Plugin already disabled",
                     "expected an enabled plugin"
@@ -293,7 +293,7 @@ async fn disable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) 
 
             if !plugins.contains(&Plugins::Automod) {
                 let content = error_constructor!(
-                    format!("!config disable-plugin {}", plugin),
+                    "!config disable-plugin",
                     plugin,
                     "Plugin already disabled",
                     "expected an enabled plugin"
@@ -317,7 +317,7 @@ async fn disable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) 
 
             if !plugins.contains(&Plugins::Chat) {
                 let content = error_constructor!(
-                    format!("!config disable-plugin {}", plugin),
+                    "!config disable-plugin",
                     plugin,
                     "Plugin already disabled",
                     "expected an enabled plugin"
@@ -341,7 +341,7 @@ async fn disable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) 
 
             if !plugins.contains(&Plugins::Logging) {
                 let content = error_constructor!(
-                    format!("!config disable-plugin {}", plugin),
+                    "!config disable-plugin",
                     plugin,
                     "Plugin already disabled",
                     "expected an enabled plugin"
@@ -365,7 +365,7 @@ async fn disable_plugin(msg: &Message, ctx: &Context, config: &mut GuildConfig) 
 
             if !plugins.contains(&Plugins::Xp) {
                 let content = error_constructor!(
-                    format!("!config disable-plugin {}", plugin),
+                    "!config disable-plugin",
                     plugin,
                     "Plugin already disabled",
                     "expected an enabled plugin"
