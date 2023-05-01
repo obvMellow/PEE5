@@ -26,14 +26,29 @@ const CHAT_PATH: &str = "guilds/chats";
 const BOT_ID: u64 = 1087464844288069722;
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
-    let config = GuildConfig::from_reader(
+    let config = match GuildConfig::from_reader(
         File::open(format!(
             "guilds/{}.json",
             interaction.guild_id.unwrap().as_u64()
         ))
         .unwrap(),
-    )
-    .unwrap();
+    ) {
+        Ok(v) => v,
+        Err(_) => {
+            interaction
+                .create_interaction_response(&ctx.http, |response| {
+                    response
+                        .kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|message| {
+                            message
+                                .content("An error occured while reading the config file. Try running `!config reset` to fix this.")
+                                .flags(MessageFlags::EPHEMERAL)
+                        })
+                })
+                .await?;
+            return Ok(());
+        }
+    };
 
     if !config.get_plugins().chat() {
         interaction

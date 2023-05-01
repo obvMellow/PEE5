@@ -75,7 +75,7 @@ impl EventHandler for Handler {
             }
         }
 
-        if let Interaction::MessageComponent(component) = &interaction {
+        if let Interaction::MessageComponent(mut component) = interaction {
             println!(
                 "{} {:#?}",
                 "Received Component Interaction:".green().bold(),
@@ -85,6 +85,8 @@ impl EventHandler for Handler {
             let result: Result<()> = match component.data.custom_id.as_str() {
                 "imagine_retry" => commands::imagine::retry(&ctx, &component).await,
                 "imagine_save" => commands::imagine::save(&ctx, &component).await,
+                "reset_yes" => plugins::config::reset_yes(&ctx, &mut component).await,
+                "reset_no" => plugins::config::reset_no(&ctx, &mut component).await,
                 _ => Ok(()),
             };
 

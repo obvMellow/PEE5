@@ -1,7 +1,15 @@
 use pee5::config::{GuildConfig, Plugins};
-use serenity::{model::prelude::Message, prelude::Context};
+use serenity::{
+    model::prelude::{
+        component::ButtonStyle, interaction::message_component::MessageComponentInteraction,
+        Message,
+    },
+    prelude::Context,
+    utils::Colour,
+};
 
 use crate::error_constructor;
+use crate::Result;
 
 pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
     let author = &msg.author;
@@ -45,12 +53,91 @@ pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
         "disable-plugin" => {
             disable_plugin(msg, ctx, config).await;
         }
+        "reset" => {
+            reset(msg, ctx).await;
+        }
         _ => {
             let content =
                 error_constructor!(config command, "Invalid command", "expected a valid command");
             msg.reply_ping(&ctx.http, content).await.unwrap();
         }
     }
+}
+
+async fn reset(msg: &Message, ctx: &Context) {
+    msg.channel_id
+        .send_message(&ctx.http, |message| {
+            message
+                .embed(|embed| {
+                    embed
+                        .title("Are you sure?")
+                        .description("The configuration will be resetted.")
+                        .colour(Colour::from_rgb(255, 255, 50))
+                })
+                .components(|components| {
+                    components.create_action_row(|row| {
+                        row.create_button(|button| {
+                            button
+                                .label("Yes")
+                                .style(ButtonStyle::Success)
+                                .custom_id("reset_yes")
+                        })
+                        .create_button(|button| {
+                            button
+                                .label("No")
+                                .style(ButtonStyle::Danger)
+                                .custom_id("reset_no")
+                        })
+                    })
+                })
+        })
+        .await
+        .unwrap();
+}
+
+pub async fn reset_yes(ctx: &Context, component: &mut MessageComponentInteraction) -> Result<()> {
+    let guild_id = *component.guild_id.unwrap().as_u64();
+
+    std::fs::remove_file(format!("guilds/{}.json", guild_id)).unwrap();
+
+    GuildConfig::new(guild_id)
+        .save(format!(
+            "guilds/{}.json",
+            component.guild_id.unwrap().as_u64()
+        ))
+        .unwrap();
+
+    component
+        .message
+        .edit(&ctx.http, |edit| {
+            edit.embed(|embed| {
+                embed
+                    .title("Reset successful")
+                    .description("The configuration has been resetted.")
+                    .colour(Colour::from_rgb(50, 255, 50))
+            })
+            .components(|components| components)
+        })
+        .await?;
+
+    Ok(())
+}
+
+pub async fn reset_no(ctx: &Context, component: &mut MessageComponentInteraction) -> Result<()> {
+    component
+        .message
+        .edit(&ctx.http, |edit| {
+            edit.embed(|embed| {
+                embed
+                    .title("Reset cancelled")
+                    .description("The configuration will not be resetted.")
+                    .colour(Colour::from_rgb(255, 50, 50))
+            })
+            .components(|components| components)
+        })
+        .await?;
+
+    Ok(())
 }
 
 async fn set(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
@@ -403,6 +490,8 @@ async fn help(msg: &Message, ctx: &Context) {
 **Keywords:**
     `set` - Sets a config value
     `enable-plugin` - Enables a plugin
+    `disable-plugin` - Disables a plugin
+    `reset` - Resets the configurations to default
 
 **Arguments:**
     `log_channel` - Sets the log channel
