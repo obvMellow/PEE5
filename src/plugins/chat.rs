@@ -13,6 +13,7 @@ use crate::global_config::GlobalConfig;
 
 const CHAT_PATH: &str = "guilds/chats";
 const CHAT_COMMANDS: [&str; 3] = ["!end", "!rename", "!clear"];
+const CONTEXT_MSG_LIMIT: u64 = 50;
 
 pub async fn run(msg: &Message, ctx: &Context, config: &GuildConfig, guild_id: Option<GuildId>) {
     let channel = msg.channel_id;
@@ -38,7 +39,7 @@ pub async fn run(msg: &Message, ctx: &Context, config: &GuildConfig, guild_id: O
     let typing = ctx.http.start_typing(msg.channel_id.0).unwrap();
 
     let mut context_msg = channel
-        .messages(&ctx.http, |builder| builder.limit(100))
+        .messages(&ctx.http, |builder| builder.limit(CONTEXT_MSG_LIMIT))
         .await
         .unwrap();
 
