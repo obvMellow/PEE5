@@ -257,7 +257,16 @@ impl EventHandler for Handler {
         let guild_id = msg.guild_id.unwrap();
 
         let config_file = File::open(format!("guilds/{}.json", guild_id)).unwrap();
-        let mut config = GuildConfig::from_reader(config_file).unwrap();
+        let mut config = match GuildConfig::from_reader(config_file) {
+            Ok(v) => v,
+            Err(_) => {
+                if msg.content.starts_with("!config") {
+                    plugins::config::run(&msg, &ctx, &mut GuildConfig::new(guild_id)).await;
+                }
+
+                return;
+            }
+        };
 
         let users = config.get_users_mut();
 

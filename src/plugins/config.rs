@@ -64,7 +64,7 @@ pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
     }
 }
 
-async fn reset(msg: &Message, ctx: &Context) {
+pub async fn reset(msg: &Message, ctx: &Context) {
     msg.channel_id
         .send_message(&ctx.http, |message| {
             message
