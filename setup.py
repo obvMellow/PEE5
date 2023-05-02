@@ -20,7 +20,7 @@ def main():
 
         elif platform == "win32":
             print("Looks like you are running Windows. Please go to https://rustup.rs/# and install Rust manually.")
-        
+
         else:
             print("Your operating system is not supported. Please install Rust manually.")
             input("Press enter after you installed Rust...")
@@ -57,14 +57,16 @@ def main():
         print("\nDownloading precompiled binary...")
 
         if platform == "linux":
-            os.system("wget https://github.com/obvMellow/PEE5/releases/download/v1.0.0/pee5-linux-1_0_0")
-            os.rename("pee5-linux-1_0_0", "pee5")
+            os.system(
+                "wget https://github.com/obvMellow/PEE5/releases/download/v1.0.0/pee5-linux-1-0-0")
+            os.rename("pee5-linux-1-0-0", "pee5")
             os.system("chmod +x pee5")
 
             print("Downloaded successfully!")
 
         else:
-            print("Your operating system is not supported. Please compile from source.")
+            print(
+                "There is currently no precompiled binary for your OS. Please compile from source.")
             return
 
     print("\nWriting config.json...")
@@ -81,7 +83,7 @@ def main():
     os.mkdir("guilds")
     os.mkdir("saved_imagines")
 
-    print("\nSetup complete!")
+    print("\nSetup complete! Run \"./pee5\" to start the bot.")
 
 
 if __name__ == "__main__":
