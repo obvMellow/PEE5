@@ -16,7 +16,7 @@ You can add the bot using this [link](https://top.gg/bot/1087464844288069722?s=0
 
 Also you can self host the bot.
 
-- [Install the setup script from releases page.](https://github.com/obvMellow/PEE5/releases/)
+- [Download the setup script.](https://raw.githubusercontent.com/obvMellow/PEE5/master/setup.py)
 - Run the script and follow the instructions.
 - Done!
 
