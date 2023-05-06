@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use pee5::config::GuildConfig;
+use regex::Regex;
 use serenity::{
     model::prelude::Message,
     prelude::{Context, Mentionable},
@@ -11,16 +12,10 @@ pub async fn run(msg: &Message, ctx: &Context, config: &GuildConfig, out: &mut b
     let mut deleted = false;
 
     let blacklisted_words = config.get_blacklisted_words();
+    let pattern = format!(r"(?i)\b({})\b", blacklisted_words.join("|"));
+    let regex = Regex::new(&pattern).unwrap();
 
-    let mut contained_words: Vec<String> = Vec::new();
-
-    for word in blacklisted_words {
-        if msg.content.contains(word.as_str().to_lowercase().trim()) {
-            contained_words.append(&mut vec![word.as_str().to_string()]);
-        }
-    }
-
-    if !contained_words.is_empty() {
+    if regex.is_match(&msg.content) {
         msg.delete(&ctx.http).await.unwrap();
 
         let msg = msg

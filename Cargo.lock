@@ -1243,6 +1243,7 @@ dependencies = [
  "colored",
  "openai_gpt_rs",
  "rand 0.8.5",
+ "regex",
  "reqwest",
  "rustube",
  "scraper",
