@@ -283,7 +283,7 @@ impl EventHandler for Handler {
         let mut deleted = false;
 
         if config.get_plugins().automod() {
-            deleted = plugins::automod::run(&msg, &ctx, &config).await;
+            plugins::automod::run(&msg, &ctx, &config, &mut deleted).await;
         }
 
         if !deleted {
