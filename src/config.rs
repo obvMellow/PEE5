@@ -52,6 +52,18 @@ impl IsPlugin for Vec<Plugins> {
     }
 }
 
+impl Plugins {
+    pub fn to_str(&self) -> &str {
+        match self {
+            Plugins::Afk => "Afk",
+            Plugins::Automod => "Automod",
+            Plugins::Chat => "Chat",
+            Plugins::Logging => "Logging",
+            Plugins::Xp => "Xp",
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GuildConfig {
     automod: bool,

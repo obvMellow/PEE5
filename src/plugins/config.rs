@@ -2,7 +2,7 @@ use pee5::config::{GuildConfig, Plugins};
 use serenity::{
     model::prelude::{
         component::ButtonStyle, interaction::message_component::MessageComponentInteraction,
-        Message,
+        Message, MessageFlags,
     },
     prelude::Context,
     utils::Colour,
@@ -56,11 +56,55 @@ pub async fn run(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
         "reset" => {
             reset(msg, ctx).await;
         }
+        "show" => {
+            show(msg, ctx, config).await;
+        }
         _ => {
             let content =
                 error_constructor!(config command, "Invalid command", "expected a valid command");
             msg.reply_ping(&ctx.http, content).await.unwrap();
         }
+    }
+}
+
+pub async fn show(msg: &Message, ctx: &Context, config: &mut GuildConfig) {
+    let args = msg.content.split(' ').collect::<Vec<&str>>();
+
+    let mut log_channel = "None".to_string();
+
+    if config.get_log_channel_id().is_some() {
+        log_channel = format!("<#{}>", config.get_log_channel_id().unwrap());
+    }
+
+    if args.len() < 3 {
+        msg.channel_id
+            .send_message(&ctx.http, |message| {
+                message
+                    .embed(|embed| {
+                        embed
+                            .title("Here's the server configuration!")
+                            .field(
+                                "Plugins",
+                                config
+                                    .get_plugins()
+                                    .iter()
+                                    .map(|plugin| plugin.to_str())
+                                    .collect::<Vec<&str>>()
+                                    .join(", "),
+                                false,
+                            )
+                            .field(
+                                "Blacklisted Words",
+                                config.get_blacklisted_words().join(", "),
+                                false,
+                            )
+                            .field("Log Channel", log_channel, true)
+                    })
+                    .flags(MessageFlags::EPHEMERAL)
+            })
+            .await
+            .unwrap();
+        return;
     }
 }
 
