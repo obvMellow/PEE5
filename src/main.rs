@@ -276,6 +276,11 @@ impl EventHandler for Handler {
             }
         };
 
+        if msg.content.starts_with("!config") {
+            plugins::config::run(&msg, &ctx, &mut config).await;
+            return;
+        }
+
         let users = config.get_users_mut();
 
         if users.get(&msg.author.id.as_u64()).is_none() {
@@ -313,10 +318,6 @@ impl EventHandler for Handler {
                     plugins::chat::run(&msg, &ctx, &config, Some(guild_id)).await;
                 }
             }
-        }
-
-        if msg.content.starts_with("!config") {
-            plugins::config::run(&msg, &ctx, &mut config).await;
         }
 
         // Save the config file here
