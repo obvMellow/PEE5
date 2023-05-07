@@ -536,6 +536,7 @@ async fn help(msg: &Message, ctx: &Context) {
     `enable-plugin` - Enables a plugin
     `disable-plugin` - Disables a plugin
     `reset` - Resets the configurations to default
+    `show` - Shows the current configurations
 
 **Arguments:**
     `log_channel` - Sets the log channel

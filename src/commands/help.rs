@@ -26,6 +26,7 @@ const PURGE: &str = "Deletes certain amount of messages.";
 const CHAT: &str = "Creates a channel to chat with the bot.";
 const CONFIG: &str = "Configure the bot. Type `!config` for more information.";
 const DOWNLOAD_VIDEO: &str = "Download a video from YouTube.";
+const REMOVE_BLACKLISTED_WORD: &str = "Remove a blacklisted word.";
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
     interaction
@@ -39,20 +40,21 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                             .description(HELP_MESSAGE)
                             .field("/help", HELP, true)
                             .field("/imagine", IMAGINE, true)
-                            .field("/ask-gpt", ASK_GPT, true)
-                            .field("/saved-imagines", SAVED_IMAGINES, true)
+                            .field("/ask_gpt", ASK_GPT, true)
+                            .field("/saved_imagines", SAVED_IMAGINES, true)
                             .field("/avatar", AVATAR, true)
                             .field("/automod", AUTOMOD, true)
-                            .field("/blacklist-word", BLACKLIST_WORD, true)
-                            .field("/add-role", ADD_ROLE, true)
-                            .field("/remove-role", REMOVE_ROLE, true)
+                            .field("/blacklist_word", BLACKLIST_WORD, true)
+                            .field("/add_role", ADD_ROLE, true)
+                            .field("/remove_role", REMOVE_ROLE, true)
                             .field("/timeout", TIMEOUT, true)
                             .field("/xp", XP, true)
                             .field("/config", CONFIG_CMD, true)
                             .field("/purge", PURGE, true)
                             .field("/chat", CHAT, true)
                             .field("!config", CONFIG, true)
-                            .field("/download-video", DOWNLOAD_VIDEO, true)
+                            .field("/download_video", DOWNLOAD_VIDEO, true)
+                            .field("/remove_blacklisted_word", REMOVE_BLACKLISTED_WORD, true)
                             .color(Colour::from_rgb(0, 255, 0))
                     })
                 })
