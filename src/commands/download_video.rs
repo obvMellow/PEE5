@@ -27,9 +27,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
             .create_interaction_response(&ctx.http, |response| {
                 response
                     .kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|message| {
-                        message.content("Error: Invalid URL")
-                    })
+                    .interaction_response_data(|message| message.content("Error: Invalid URL"))
             })
             .await?;
         return Ok(());
