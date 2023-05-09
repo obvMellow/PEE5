@@ -7,13 +7,15 @@ use serenity::{
     model::{
         prelude::{
             command::CommandOptionType,
-            interaction::{application_command::{
-                ApplicationCommandInteraction, CommandDataOptionValue,
-            }, InteractionResponseType},
+            interaction::{
+                application_command::{ApplicationCommandInteraction, CommandDataOptionValue},
+                InteractionResponseType,
+            },
         },
         Permissions,
     },
-    prelude::Context, utils::Colour,
+    prelude::Context,
+    utils::Colour,
 };
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
@@ -53,7 +55,10 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                 .interaction_response_data(|message| {
                     message.embed(|embed| {
                         embed.title("Success");
-                        embed.description(format!("The word \"{}\" has been removed from blacklist.", value));
+                        embed.description(format!(
+                            "The word \"{}\" has been removed from blacklist.",
+                            value
+                        ));
                         embed.color(Colour::from_rgb(102, 255, 102));
                         embed
                     })
