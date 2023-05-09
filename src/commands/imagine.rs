@@ -501,25 +501,13 @@ async fn _generate<T>(client: &Client, args: T) -> StdResult<String, Error>
 where
     T: FnOnce(&mut ImageArgs) -> &mut ImageArgs,
 {
-    let resp = client.create_image(args).await.unwrap();
+    let resp = client.create_image(args).await;
 
-    dbg!(&resp);
-
-    match resp.json.as_object().unwrap().get("error") {
-        Some(error) => {
-            let error = error
-                .as_object()
-                .unwrap()
-                .get("message")
-                .unwrap()
-                .as_str()
-                .unwrap();
-
-            Err(Error {
-                message: error.to_string(),
-            })
-        }
-        None => Ok(resp.get_content(0).await.unwrap()),
+    match resp {
+        Ok(image) => Ok(image.get_content(0).unwrap()),
+        Err(error) => Err(Error {
+            message: error.message,
+        }),
     }
 }
 

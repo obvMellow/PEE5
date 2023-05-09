@@ -1,8 +1,9 @@
-use std::{collections::HashMap, thread, time::Duration};
+use std::{thread, time::Duration};
 
 use colored::Colorize;
-use openai_gpt_rs::client::Client as OpenAIClient;
+use openai_gpt_rs::chat::Message as ChatMessage;
 use openai_gpt_rs::response::Content;
+use openai_gpt_rs::{client::Client as OpenAIClient, models::ChatModels};
 use pee5::config::GuildConfig;
 use serenity::{
     model::prelude::{ChannelId, GuildId, Message},
@@ -56,17 +57,17 @@ pub async fn run(msg: &Message, ctx: &Context, config: &GuildConfig, guild_id: O
         "# Only include the content of your response, not the author, or \"Content:\" label.",
     );
 
-    let mut context_msg = HashMap::new();
-    context_msg.insert("role".to_string(), "assistant".to_string());
-    context_msg.insert("content".to_string(), context);
+    let context_msg = ChatMessage {
+        role: "assistant".to_string(),
+        content: context,
+    };
 
-    let mut user_msg = HashMap::new();
-    user_msg.insert("role".to_string(), "user".to_string());
-    user_msg.insert("content".to_string(), msg.content.clone());
+    let user_msg = ChatMessage {
+        role: "user".to_string(),
+        content: msg.content.clone(),
+    };
 
-    let mut messages = Vec::new();
-    messages.push(context_msg);
-    messages.push(user_msg);
+    let messages = vec![context_msg, user_msg];
 
     let client = OpenAIClient::new(&GlobalConfig::load("config.json").openai_key);
 
@@ -74,24 +75,13 @@ pub async fn run(msg: &Message, ctx: &Context, config: &GuildConfig, guild_id: O
         .create_chat_completion(|args| {
             args.max_tokens(1024)
                 .messages(messages)
-                .model("gpt-3.5-turbo")
+                .model(ChatModels::Gpt3_5Turbo)
         })
-        .await
-        .unwrap();
+        .await;
 
-    let new_msg = match resp.json.as_object().unwrap().get("error") {
-        Some(error) => {
-            let error = error
-                .as_object()
-                .unwrap()
-                .get("message")
-                .unwrap()
-                .as_str()
-                .unwrap();
-
-            error.to_string()
-        }
-        None => resp.get_content(0).await.unwrap(),
+    let new_msg = match resp {
+        Ok(resp) => resp.get_content(0).unwrap(),
+        Err(error) => error.message,
     };
 
     msg.reply(&ctx.http, new_msg).await.unwrap();
@@ -114,7 +104,9 @@ async fn _end(
 
     channel.delete(&ctx.http).await.unwrap();
 
-    config.save(format!("guilds/{}.json", guild_id.unwrap())).unwrap();
+    config
+        .save(format!("guilds/{}.json", guild_id.unwrap()))
+        .unwrap();
 }
 
 async fn _rename(msg: &Message, channel: ChannelId, ctx: &Context) {

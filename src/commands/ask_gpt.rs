@@ -1,6 +1,6 @@
 use crate::global_config::GlobalConfig;
 use crate::Result;
-use openai_gpt_rs::{client::Client, response::Content};
+use openai_gpt_rs::{chat::Message as ChatMessage, client::Client, response::Content};
 use serenity::{
     builder::CreateApplicationCommand,
     model::{
@@ -17,7 +17,6 @@ use serenity::{
     prelude::Context,
     utils::Colour,
 };
-use std::collections::HashMap;
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
     let question = interaction
@@ -45,21 +44,17 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
         let key = GlobalConfig::load("config.json").openai_key;
         let client = Client::new(&key);
 
-        let mut messages: Vec<HashMap<String, String>> = Vec::new();
-        let mut message: HashMap<String, String> = HashMap::new();
-        message.insert("role".to_string(), "user".to_string());
-        message.insert("content".to_string(), question.to_string());
-
-        messages.push(message);
+        let message = ChatMessage {
+            role: "user".to_string(),
+            content: question.to_string(),
+        };
 
         let resp = client
-            .create_chat_completion(|args| args.messages(messages).max_tokens(2048).n(1))
+            .create_chat_completion(|args| args.messages(vec![message]).max_tokens(2048).n(1))
             .await
             .unwrap();
 
-        let content = resp.get_content(0).await.unwrap();
-
-        dbg!(&resp.json);
+        let content = resp.get_content(0).unwrap();
 
         interaction
             .edit_original_interaction_response(&ctx.http, |response| {
