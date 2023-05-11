@@ -1,4 +1,5 @@
 use pee5::config::GuildConfig;
+use rusqlite::{params, Connection};
 use serenity::{
     model::prelude::{ChannelId, GuildId, Message},
     prelude::{Context, Mentionable},
@@ -7,6 +8,8 @@ use serenity::{
 
 pub async fn run(ctx: &Context, config: &GuildConfig, guild_id: GuildId, msg: &Message) {
     let log_channel_id: Option<u64> = config.get_log_channel_id();
+
+    insert_message_to_db(&msg);
 
     match log_channel_id {
         Some(log_channel_id) => {
@@ -37,4 +40,26 @@ pub async fn run(ctx: &Context, config: &GuildConfig, guild_id: GuildId, msg: &M
         }
         None => {}
     }
+}
+
+fn insert_message_to_db(msg: &Message) {
+    let conn = Connection::open("pee5.db").unwrap();
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY,
+            author_id INTEGER NOT NULL,
+            channel_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+        )",
+        [],
+    )
+    .unwrap();
+
+    conn.execute(
+        "INSERT INTO messages (author_id, channel_id, content)
+        VALUES (?1, ?2, ?3)",
+        params![msg.author.id.0, msg.channel_id.0, msg.content],
+    )
+    .unwrap();
 }
