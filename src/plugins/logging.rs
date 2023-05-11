@@ -1,7 +1,10 @@
 use pee5::config::GuildConfig;
 use rusqlite::{params, Connection};
 use serenity::{
-    model::prelude::{ChannelId, GuildId, Message, MessageId},
+    model::{
+        prelude::{ChannelId, GuildId, Message, MessageId},
+        Timestamp,
+    },
     prelude::{Context, Mentionable},
     utils::Colour,
 };
@@ -11,6 +14,7 @@ pub struct SimplifiedMessage {
     pub author_id: u64,
     pub channel_id: u64,
     pub content: String,
+    pub unix_timestamp: i64,
 }
 
 pub async fn run(ctx: &Context, config: &GuildConfig, guild_id: GuildId, msg: &Message) {
@@ -86,6 +90,7 @@ pub async fn run_delete(
                                     msg.author_id, msg.id, channel_id
                                 ))
                             })
+                            .timestamp(Timestamp::from_unix_timestamp(msg.unix_timestamp).unwrap())
                     })
                 })
                 .await
@@ -108,6 +113,7 @@ fn get_message_from_db(message_id: MessageId) -> Option<SimplifiedMessage> {
                 author_id: row.get(1)?,
                 channel_id: row.get(2)?,
                 content: row.get(3)?,
+                unix_timestamp: row.get(4)?,
             })
         })
         .unwrap();
@@ -129,16 +135,23 @@ fn insert_message_to_db(msg: &Message) {
             id INTEGER PRIMARY KEY,
             author_id INTEGER NOT NULL,
             channel_id INTEGER NOT NULL,
-            content TEXT NOT NULL
+            content TEXT NOT NULL,
+            unix_timestamp INTEGER NOT NULL
         )",
         [],
     )
     .unwrap();
 
     conn.execute(
-        "INSERT INTO messages (id, author_id, channel_id, content)
-        VALUES (?1, ?2, ?3, ?4)",
-        params![msg.id.0, msg.author.id.0, msg.channel_id.0, msg.content],
+        "INSERT INTO messages (id, author_id, channel_id, content, unix_timestamp)
+        VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![
+            msg.id.0,
+            msg.author.id.0,
+            msg.channel_id.0,
+            msg.content,
+            msg.timestamp.unix_timestamp()
+        ],
     )
     .unwrap();
 }
