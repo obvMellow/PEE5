@@ -12,6 +12,7 @@ Our software only collects data provided by Discord API: https://discord.com/dev
 Some of these data are logged in order to prevent any malicious use. These data consist of:
 - Slash commands used.
 - Details of the slash command. See: https://discord.com/developers/docs/interactions/application-commands#slash-commands
+- Messages sent in channels that PEE5 has read messages permission (All data is encrypted and deleted after 30 days)
 
 These data are not anonymous and can be traced back to your Discord account.
 
