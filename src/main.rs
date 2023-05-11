@@ -5,10 +5,13 @@ mod plugins;
 use colored::Colorize;
 use global_config::GlobalConfig;
 use pee5::config::{GuildConfig, IsPlugin};
+use rusqlite::{params, Connection};
 use serenity::async_trait;
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
+use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
+use serenity::model::prelude::interaction::message_component::MessageComponentInteraction;
 use serenity::model::prelude::{Activity, Guild, Message};
 use serenity::prelude::*;
 use serenity::utils::Colour;
@@ -24,11 +27,7 @@ struct Handler;
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = &interaction {
-            println!(
-                "{} {:#?}",
-                "Received Command Interaction:".green().bold(),
-                command
-            );
+            insert_application_command_to_database(&command);
 
             let result: Result<()> = match command.data.name.as_str() {
                 "echo" => commands::echo::run(&ctx, &command).await,
@@ -64,6 +63,8 @@ impl EventHandler for Handler {
                     why
                 );
 
+                insert_error_to_database(&why);
+
                 command
                     .create_followup_message(&ctx.http, |message| {
                         message.embed(|embed| {
@@ -79,11 +80,7 @@ impl EventHandler for Handler {
         }
 
         if let Interaction::MessageComponent(mut component) = interaction {
-            println!(
-                "{} {:#?}",
-                "Received Component Interaction:".green().bold(),
-                component
-            );
+            insert_message_component_to_database(&component);
 
             let result: Result<()> = match component.data.custom_id.as_str() {
                 "imagine_retry" => commands::imagine::retry(&ctx, &component).await,
@@ -99,6 +96,8 @@ impl EventHandler for Handler {
                     "Error".red().bold(),
                     why
                 );
+
+                insert_error_to_database(&why);
             }
         }
     }
@@ -363,4 +362,96 @@ async fn main() {
 
 pub fn path_exists(path: &str) -> bool {
     fs::metadata(path).is_ok()
+}
+
+pub fn insert_application_command_to_database(command: &ApplicationCommandInteraction) {
+    let conn = Connection::open("pee5.db").unwrap();
+
+    // Create the table if not exists already
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS application_commands (
+            id INTEGER PRIMARY KEY,
+            application_id INTEGER NOT NULL,
+            kind INTEGER NOT NULL,
+            data TEXT NOT NULL,
+            guild_id INTEGER,
+            channel_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL
+        )",
+        [],
+    )
+    .unwrap();
+
+    // Insert the interaction into the database
+    conn.execute(
+        "INSERT INTO application_commands (id, application_id, kind, data, guild_id, channel_id, user_id)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            command.id.0,
+            command.application_id.0,
+            command.kind.num(),
+            serde_json::to_string(&command.data).unwrap(),
+            command.guild_id.map(|id| id.0),
+            command.channel_id.0,
+            command.user.id.0
+        ],
+    )
+    .unwrap();
+}
+
+pub fn insert_message_component_to_database(component: &MessageComponentInteraction) {
+    let conn = Connection::open("pee5.db").unwrap();
+
+    // Create the table if not exists already
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS message_components (
+            id INTEGET PRIMARY KEY,
+            application_id INTEGER NOT NULL,
+            kind INTEGER NOT NULL,
+            data TEXT NOT NULL,
+            guild_id INTEGER,
+            channel_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            message TEXT NOT NULL
+        )",
+        [],
+    )
+    .unwrap();
+
+    // Insert the interaction into the database
+    conn.execute(
+        "INSERT INTO message_components (id, application_id, kind, data, guild_id, channel_id, user_id, message)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![
+            component.id.0,
+            component.application_id.0,
+            component.kind.num(),
+            serde_json::to_string(&component.data).unwrap(),
+            component.guild_id.map(|id| id.0),
+            component.channel_id.0,
+            component.user.id.0,
+            serde_json::to_string(&component.message).unwrap()
+        ],
+    )
+    .unwrap();
+}
+
+pub fn insert_error_to_database(why: &serenity::Error) {
+    let conn = Connection::open("pee5.db").unwrap();
+
+    // Create the table if not exists already
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS errors (
+            error TEXT NOT NULL
+        )",
+        [],
+    )
+    .unwrap();
+
+    // Insert the error into the database
+    conn.execute(
+        "INSERT INTO errors (error) VALUES (?1)",
+        params![why.to_string()],
+    )
+    .unwrap();
 }
