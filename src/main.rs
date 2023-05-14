@@ -12,7 +12,7 @@ use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::interaction::message_component::MessageComponentInteraction;
-use serenity::model::prelude::{Activity, Guild, Message, MessageId, GuildId, ChannelId};
+use serenity::model::prelude::{Activity, ChannelId, Guild, GuildId, Message, MessageId};
 use serenity::prelude::*;
 use serenity::utils::Colour;
 use std::fs::{self, File};
@@ -112,7 +112,13 @@ impl EventHandler for Handler {
         config.save(format!("guilds/{}.json", guild_id)).unwrap();
     }
 
-    async fn message_delete(&self, ctx: Context, channel_id: ChannelId, message_id: MessageId, guild_id: Option<GuildId>) {
+    async fn message_delete(
+        &self,
+        ctx: Context,
+        channel_id: ChannelId,
+        message_id: MessageId,
+        guild_id: Option<GuildId>,
+    ) {
         if guild_id.is_none() {
             return;
         }
