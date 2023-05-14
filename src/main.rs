@@ -25,80 +25,109 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::ApplicationCommand(command) = &interaction {
-            insert_application_command_to_database(&command);
+    async fn guild_create(&self, _ctx: Context, guild: Guild) {
+        let config_file = format!("guilds/{}.json", guild.id);
 
-            let result: Result<()> = match command.data.name.as_str() {
-                "echo" => commands::echo::run(&ctx, &command).await,
-                "timeout" => commands::timeout::run(&ctx, &command).await,
-                "config" => commands::config::run(&ctx, &command).await,
-                "add_role" => commands::add_role::run(&ctx, &command).await,
-                "remove_role" => commands::remove_role::run(&ctx, &command).await,
-                "automod" => commands::automod::run(&ctx, &command).await,
-                "blacklist_word" => commands::blacklist_word::run(&ctx, &command).await,
-                "xp" => commands::xp::run(&ctx, &command).await,
-                "imagine" => commands::imagine::run(&ctx, &command).await,
-                "saved_imagines" => commands::saved_imagines::run(&ctx, &command).await,
-                "avatar" => commands::avatar::run(&ctx, &command).await,
-                "ask_gpt" => commands::ask_gpt::run(&ctx, &command).await,
-                "help" => commands::help::run(&ctx, &command).await,
-                "afk" => commands::afk::run(&ctx, &command).await,
-                "purge" => commands::purge::run(&ctx, &command).await,
-                "warn" => commands::warn::run(&ctx, &command).await,
-                "warns" => commands::warns::run(&ctx, &command).await,
-                "chat" => commands::chat::run(&ctx, &command).await,
-                "remove_warn" => commands::remove_warn::run(&ctx, &command).await,
-                "download_video" => commands::download_video::run(&ctx, &command).await,
-                "remove_blacklisted_word" => {
-                    commands::remove_blacklisted_word::run(&ctx, &command).await
+        if path_exists(&config_file) {
+            return;
+        }
+
+        let file = match File::create(config_file) {
+            Ok(v) => v,
+            Err(e) => panic!("Error creating config file: {}", e),
+        };
+
+        GuildConfig::new(guild.id).to_writer_pretty(file).unwrap();
+    }
+
+    async fn message(&self, ctx: Context, msg: Message) {
+        if msg.author.bot {
+            return;
+        }
+
+        if msg.guild_id.is_none() {
+            _dm_msg(ctx, msg).await;
+            return;
+        }
+
+        // Add the message author to the config file if they aren't already
+        let guild_id = msg.guild_id.unwrap();
+
+        let config_file = File::open(format!("guilds/{}.json", guild_id)).unwrap();
+        let mut config = match GuildConfig::from_reader(config_file) {
+            Ok(v) => v,
+            Err(_) => {
+                if msg.content.starts_with("!config") {
+                    plugins::config::run(&msg, &ctx, &mut GuildConfig::new(guild_id)).await;
                 }
-                _ => Ok(()),
-            };
 
-            if let Err(why) = result {
-                eprintln!(
-                    "{} An error occured on a slash command: {:?}",
-                    "Error".red().bold(),
-                    why
-                );
+                return;
+            }
+        };
 
-                insert_error_to_database(&why);
+        if msg.content.starts_with("!config") {
+            plugins::config::run(&msg, &ctx, &mut config).await;
+            return;
+        }
 
-                command
-                    .create_followup_message(&ctx.http, |message| {
-                        message.embed(|embed| {
-                            embed
-                                .title("Error")
-                                .field("Error Message", why, false)
-                                .color(Colour::RED)
-                        })
-                    })
-                    .await
-                    .unwrap();
+        let users = config.get_users_mut();
+
+        if users.get(&msg.author.id.as_u64()).is_none() {
+            users.insert(msg.author.id.0, 0);
+        }
+
+        // Do the logging here
+        if config.get_plugins().logging() {
+            plugins::logging::run(&ctx, &config, guild_id, &msg).await;
+        }
+
+        // Moderate the message here
+        let mut deleted = false;
+
+        if config.get_plugins().automod() {
+            plugins::automod::run(&msg, &ctx, &config, &mut deleted).await;
+        }
+
+        if !deleted {
+            // Give the user some xp here
+            if config.get_plugins().xp() {
+                plugins::xp::run(&msg, &mut config);
+            }
+
+            // Afk plugin here
+            if config.get_plugins().afk() {
+                plugins::afk::run(&msg, &ctx, &mut config).await;
+            }
+
+            // Reply if the message is sent in a chat
+            let chats = fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()));
+
+            if let Ok(chats) = chats {
+                if chats.contains(&msg.channel_id.to_string()) && config.get_plugins().chat() {
+                    plugins::chat::run(&msg, &ctx, &config, Some(guild_id)).await;
+                }
             }
         }
 
-        if let Interaction::MessageComponent(mut component) = interaction {
-            insert_message_component_to_database(&component);
+        // Save the config file here
+        config.save(format!("guilds/{}.json", guild_id)).unwrap();
+    }
 
-            let result: Result<()> = match component.data.custom_id.as_str() {
-                "imagine_retry" => commands::imagine::retry(&ctx, &component).await,
-                "imagine_save" => commands::imagine::save(&ctx, &component).await,
-                "reset_yes" => plugins::config::reset_yes(&ctx, &mut component).await,
-                "reset_no" => plugins::config::reset_no(&ctx, &mut component).await,
-                _ => Ok(()),
-            };
+    async fn message_delete(&self, ctx: Context, channel_id: ChannelId, message_id: MessageId, guild_id: Option<GuildId>) {
+        if guild_id.is_none() {
+            return;
+        }
 
-            if let Err(why) = result {
-                eprintln!(
-                    "{} An error occured on a component: {:?}",
-                    "Error".red().bold(),
-                    why
-                );
+        let guild_id = guild_id.unwrap();
 
-                insert_error_to_database(&why);
-            }
+        let config_file = File::open(format!("guilds/{}.json", guild_id)).unwrap();
+        let config = match GuildConfig::from_reader(config_file) {
+            Ok(v) => v,
+            Err(_) => return,
+        };
+
+        if config.get_plugins().logging() {
+            plugins::logging::run_delete(&ctx, &config, guild_id, channel_id, message_id).await;
         }
     }
 
@@ -250,110 +279,81 @@ impl EventHandler for Handler {
         );
     }
 
-    async fn message(&self, ctx: Context, msg: Message) {
-        if msg.author.bot {
-            return;
-        }
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        if let Interaction::ApplicationCommand(command) = &interaction {
+            insert_application_command_to_database(&command);
 
-        if msg.guild_id.is_none() {
-            _dm_msg(ctx, msg).await;
-            return;
-        }
-
-        // Add the message author to the config file if they aren't already
-        let guild_id = msg.guild_id.unwrap();
-
-        let config_file = File::open(format!("guilds/{}.json", guild_id)).unwrap();
-        let mut config = match GuildConfig::from_reader(config_file) {
-            Ok(v) => v,
-            Err(_) => {
-                if msg.content.starts_with("!config") {
-                    plugins::config::run(&msg, &ctx, &mut GuildConfig::new(guild_id)).await;
+            let result: Result<()> = match command.data.name.as_str() {
+                "echo" => commands::echo::run(&ctx, &command).await,
+                "timeout" => commands::timeout::run(&ctx, &command).await,
+                "config" => commands::config::run(&ctx, &command).await,
+                "add_role" => commands::add_role::run(&ctx, &command).await,
+                "remove_role" => commands::remove_role::run(&ctx, &command).await,
+                "automod" => commands::automod::run(&ctx, &command).await,
+                "blacklist_word" => commands::blacklist_word::run(&ctx, &command).await,
+                "xp" => commands::xp::run(&ctx, &command).await,
+                "imagine" => commands::imagine::run(&ctx, &command).await,
+                "saved_imagines" => commands::saved_imagines::run(&ctx, &command).await,
+                "avatar" => commands::avatar::run(&ctx, &command).await,
+                "ask_gpt" => commands::ask_gpt::run(&ctx, &command).await,
+                "help" => commands::help::run(&ctx, &command).await,
+                "afk" => commands::afk::run(&ctx, &command).await,
+                "purge" => commands::purge::run(&ctx, &command).await,
+                "warn" => commands::warn::run(&ctx, &command).await,
+                "warns" => commands::warns::run(&ctx, &command).await,
+                "chat" => commands::chat::run(&ctx, &command).await,
+                "remove_warn" => commands::remove_warn::run(&ctx, &command).await,
+                "download_video" => commands::download_video::run(&ctx, &command).await,
+                "remove_blacklisted_word" => {
+                    commands::remove_blacklisted_word::run(&ctx, &command).await
                 }
+                _ => Ok(()),
+            };
 
-                return;
-            }
-        };
+            if let Err(why) = result {
+                eprintln!(
+                    "{} An error occured on a slash command: {:?}",
+                    "Error".red().bold(),
+                    why
+                );
 
-        if msg.content.starts_with("!config") {
-            plugins::config::run(&msg, &ctx, &mut config).await;
-            return;
-        }
+                insert_error_to_database(&why);
 
-        let users = config.get_users_mut();
-
-        if users.get(&msg.author.id.as_u64()).is_none() {
-            users.insert(msg.author.id.0, 0);
-        }
-
-        // Do the logging here
-        if config.get_plugins().logging() {
-            plugins::logging::run(&ctx, &config, guild_id, &msg).await;
-        }
-
-        // Moderate the message here
-        let mut deleted = false;
-
-        if config.get_plugins().automod() {
-            plugins::automod::run(&msg, &ctx, &config, &mut deleted).await;
-        }
-
-        if !deleted {
-            // Give the user some xp here
-            if config.get_plugins().xp() {
-                plugins::xp::run(&msg, &mut config);
-            }
-
-            // Afk plugin here
-            if config.get_plugins().afk() {
-                plugins::afk::run(&msg, &ctx, &mut config).await;
-            }
-
-            // Reply if the message is sent in a chat
-            let chats = std::fs::read_to_string(format!("{}/{}", CHAT_PATH, msg.guild_id.unwrap()));
-
-            if let Ok(chats) = chats {
-                if chats.contains(&msg.channel_id.to_string()) && config.get_plugins().chat() {
-                    plugins::chat::run(&msg, &ctx, &config, Some(guild_id)).await;
-                }
+                command
+                    .create_followup_message(&ctx.http, |message| {
+                        message.embed(|embed| {
+                            embed
+                                .title("Error")
+                                .field("Error Message", why, false)
+                                .color(Colour::RED)
+                        })
+                    })
+                    .await
+                    .unwrap();
             }
         }
 
-        // Save the config file here
-        config.save(format!("guilds/{}.json", guild_id)).unwrap();
-    }
+        if let Interaction::MessageComponent(mut component) = interaction {
+            insert_message_component_to_database(&component);
 
-    async fn message_delete(&self, ctx: Context, channel_id: ChannelId, message_id: MessageId, guild_id: Option<GuildId>) {
-        if guild_id.is_none() {
-            return;
+            let result: Result<()> = match component.data.custom_id.as_str() {
+                "imagine_retry" => commands::imagine::retry(&ctx, &component).await,
+                "imagine_save" => commands::imagine::save(&ctx, &component).await,
+                "reset_yes" => plugins::config::reset_yes(&ctx, &mut component).await,
+                "reset_no" => plugins::config::reset_no(&ctx, &mut component).await,
+                _ => Ok(()),
+            };
+
+            if let Err(why) = result {
+                eprintln!(
+                    "{} An error occured on a component: {:?}",
+                    "Error".red().bold(),
+                    why
+                );
+
+                insert_error_to_database(&why);
+            }
         }
-
-        let guild_id = guild_id.unwrap();
-
-        let config_file = File::open(format!("guilds/{}.json", guild_id)).unwrap();
-        let config = match GuildConfig::from_reader(config_file) {
-            Ok(v) => v,
-            Err(_) => return,
-        };
-
-        if config.get_plugins().logging() {
-            plugins::logging::run_delete(&ctx, &config, guild_id, channel_id, message_id).await;
-        }
-    }
-
-    async fn guild_create(&self, _ctx: Context, guild: Guild) {
-        let config_file = format!("guilds/{}.json", guild.id);
-
-        if path_exists(&config_file) {
-            return;
-        }
-
-        let file = match File::create(config_file) {
-            Ok(v) => v,
-            Err(e) => panic!("Error creating config file: {}", e),
-        };
-
-        GuildConfig::new(guild.id).to_writer_pretty(file).unwrap();
     }
 }
 
