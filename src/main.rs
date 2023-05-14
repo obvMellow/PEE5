@@ -50,7 +50,6 @@ impl EventHandler for Handler {
             return;
         }
 
-        // Add the message author to the config file if they aren't already
         let guild_id = msg.guild_id.unwrap();
 
         let config_file = File::open(format!("guilds/{}.json", guild_id)).unwrap();
