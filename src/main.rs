@@ -45,6 +45,8 @@ impl EventHandler for Handler {
             return;
         }
 
+        plugins::activity::run(&ctx, &msg).await;
+
         if msg.guild_id.is_none() {
             _dm_msg(ctx, msg).await;
             return;

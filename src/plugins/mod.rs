@@ -1,3 +1,4 @@
+pub mod activity;
 pub mod afk;
 pub mod automod;
 pub mod chat;
