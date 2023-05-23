@@ -434,8 +434,6 @@ pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Res
 
     let client = reqwest::Client::new();
 
-    dbg!(&url);
-
     let url = Url::parse(url).unwrap();
 
     let image = client
