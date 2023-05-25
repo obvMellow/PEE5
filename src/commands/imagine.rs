@@ -15,6 +15,7 @@ use openai_gpt_rs::{
 };
 use rand::{distributions::Alphanumeric, Rng};
 use reqwest::Url;
+use serenity::model::channel::AttachmentType;
 use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::prelude::interaction::{
     application_command::ApplicationCommandInteraction, MessageFlags,
@@ -103,6 +104,34 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
 
     match url {
         Ok(url) => {
+            let image = download(&Url::parse(&url).unwrap()).await;
+
+            let name = format!("{}.png", interaction.user.id.as_u64());
+
+            let mut file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .read(true)
+                .open(&name)
+                .unwrap();
+            file.write_all(&image).unwrap();
+            // We drop the file here because it won't get written to disk otherwise and
+            // Discord API will be confused.
+            drop(file);
+
+            interaction
+                .channel_id
+                .send_files(
+                    &ctx.http,
+                    vec![AttachmentType::File {
+                        filename: name.clone(),
+                        file: &tokio::fs::File::open(&name).await.unwrap(),
+                    }],
+                    |m| m,
+                )
+                .await
+                .unwrap();
+
             let msg = interaction
                 .edit_original_interaction_response(&ctx.http, |response| {
                     response.embed(|embed| {
@@ -111,7 +140,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                         embed.color(Colour::from_rgb(0, 255, 0));
                         embed.timestamp(&Timestamp::now());
 
-                        embed.image(&url);
+                        embed.attachment(&name);
 
                         embed.footer(|footer| {
                             footer.text("Powered by OpenAI DALL-E").icon_url("https://cdn.iconscout.com/icon/premium/png-512-thumb/openai-1523664-1290202.png")
@@ -322,6 +351,34 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
 
     match url {
         Ok(url) => {
+            let image = download(&Url::parse(&url).unwrap()).await;
+
+            let name = format!("{}.png", component.user.id.as_u64());
+
+            let mut file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .read(true)
+                .open(&name)
+                .unwrap();
+            file.write_all(&image).unwrap();
+            // We drop the file here because it won't get written to disk otherwise and
+            // Discord API will be confused.
+            drop(file);
+
+            component
+                .channel_id
+                .send_files(
+                    &ctx.http,
+                    vec![AttachmentType::File {
+                        filename: name.clone(),
+                        file: &tokio::fs::File::open(&name).await.unwrap(),
+                    }],
+                    |m| m,
+                )
+                .await
+                .unwrap();
+
             component
                 .edit_original_interaction_response(&ctx.http, |response| {
                     response.embed(|embed| {
@@ -330,7 +387,7 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
                         embed.color(Colour::from_rgb(0, 255, 0));
                         embed.timestamp(&Timestamp::now());
 
-                        embed.image(&url);
+                        embed.attachment(&name);
 
                         embed
                     });
@@ -368,6 +425,8 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
                 })
                 .await?;
 
+            fs::remove_file(name).unwrap();
+
             let tmp_name = format!(
                 "tmp/{}:{}:{}:{}",
                 component.guild_id.unwrap(),
@@ -401,6 +460,16 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
     Ok(())
 }
 
+async fn download(url: &Url) -> Vec<u8> {
+    reqwest::get(url.clone())
+        .await
+        .unwrap()
+        .bytes()
+        .await
+        .unwrap()
+        .to_vec()
+}
+
 pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Result<()> {
     let name = rand::thread_rng()
         .sample_iter(&Alphanumeric)
@@ -416,35 +485,17 @@ pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Res
     ))
     .unwrap();
 
-    let url = url.split("\n").collect::<Vec<&str>>()[1];
+    let url = Url::parse(url.split("\n").collect::<Vec<&str>>()[1]).unwrap();
 
     let user_id = component.user.id;
 
     component
         .create_interaction_response(&ctx.http, |response| {
-            response
-                .kind(InteractionResponseType::DeferredUpdateMessage)
-                .interaction_response_data(|message| {
-                    message.content("Saving image...");
-                    message
-                })
+            response.kind(InteractionResponseType::DeferredUpdateMessage)
         })
-        .await
-        .unwrap();
+        .await?;
 
-    let client = reqwest::Client::new();
-
-    let url = Url::parse(url).unwrap();
-
-    let image = client
-        .get(url.clone())
-        .send()
-        .await
-        .unwrap()
-        .bytes()
-        .await
-        .unwrap()
-        .to_vec();
+    let image = download(&url).await;
 
     fs::create_dir_all(format!("saved_imagines/{}", user_id)).unwrap();
 
