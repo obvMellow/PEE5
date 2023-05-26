@@ -430,7 +430,7 @@ pub fn insert_message_component_to_database(component: &MessageComponentInteract
     // Create the table if not exists already
     conn.execute(
         "CREATE TABLE IF NOT EXISTS message_components (
-            id INTEGET PRIMARY KEY,
+            id INTEGER PRIMARY KEY,
             application_id INTEGER NOT NULL,
             kind INTEGER NOT NULL,
             data TEXT NOT NULL,
