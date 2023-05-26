@@ -344,8 +344,8 @@ impl EventHandler for Handler {
             insert_message_component_to_database(&component);
 
             let result: Result<()> = match component.data.custom_id.as_str() {
-                "imagine_retry" => commands::imagine::retry(&ctx, &component).await,
-                "imagine_save" => commands::imagine::save(&ctx, &component).await,
+                "imagine_retry" => commands::imagine::retry(&ctx, &mut component).await,
+                "imagine_save" => commands::imagine::save(&ctx, &mut component).await,
                 "reset_yes" => plugins::config::reset_yes(&ctx, &mut component).await,
                 "reset_no" => plugins::config::reset_no(&ctx, &mut component).await,
                 _ => Ok(()),
