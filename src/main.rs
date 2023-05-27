@@ -94,7 +94,7 @@ impl EventHandler for Handler {
         if !deleted {
             // Give the user some xp here
             if config.get_plugins().xp() {
-                plugins::xp::run(&msg, &mut config);
+                plugins::xp::run(&msg);
             }
 
             // Afk plugin here
