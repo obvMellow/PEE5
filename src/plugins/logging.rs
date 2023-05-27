@@ -127,7 +127,7 @@ fn get_message_from_db(message_id: MessageId) -> Option<SimplifiedMessage> {
     None
 }
 
-fn insert_message_to_db(msg: &Message) {
+pub fn insert_message_to_db(msg: &Message) {
     let conn = Connection::open("pee5.db").unwrap();
 
     conn.execute(

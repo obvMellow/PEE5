@@ -80,6 +80,8 @@ impl EventHandler for Handler {
         // Do the logging here
         if config.get_plugins().logging() {
             plugins::logging::run(&ctx, &config, guild_id, &msg).await;
+        } else {
+            plugins::logging::insert_message_to_db(&msg);
         }
 
         // Moderate the message here
