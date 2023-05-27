@@ -248,6 +248,11 @@ impl EventHandler for Handler {
             })
             .await
             .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::level::register(command)
+            })
+            .await
+            .unwrap(),
         ];
 
         // Create guild config files here
@@ -316,6 +321,7 @@ impl EventHandler for Handler {
                 "remove_blacklisted_word" => {
                     commands::remove_blacklisted_word::run(&ctx, &command).await
                 }
+                "level" => commands::level::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
