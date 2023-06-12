@@ -15,5 +15,5 @@ reqwest = { version = "0.11.17", features = ["blocking", "default-tls"] }
 scraper = "0.16.0"
 select = "0.6.0"
 rustube = "0.6.0"
-regex = "1.8.1"
+regex = "1.8.4"
 rusqlite = "0.29.0"
