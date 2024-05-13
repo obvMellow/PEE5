@@ -15,6 +15,8 @@ use openai_gpt_rs::{
 };
 use rand::{distributions::Alphanumeric, Rng};
 use reqwest::Url;
+use serenity::builder::CreateComponents;
+use serenity::model::channel::AttachmentType;
 use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::prelude::interaction::{
     application_command::ApplicationCommandInteraction, MessageFlags,
@@ -27,11 +29,6 @@ use serenity::{builder::CreateApplicationCommand, model::prelude::component::But
 use serenity::model::Timestamp;
 use serenity::prelude::Context;
 use serenity::utils::Colour;
-
-const RESPONSE_DESCRIPTION: &str =
-    "Here is your image!\n\n**Images are deleted after 24 hours unless saved.**";
-
-const SAVE_DESCRIPTION: &str = "Here is your image!\n\n**Image is saved!**";
 
 pub struct Error {
     pub message: String,
@@ -84,11 +81,8 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
     interaction
         .create_interaction_response(&ctx.http, |response| {
             response
-                .kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                .interaction_response_data(|message| {
-                    message.content("Generating images...");
-                    message
-                })
+                .kind(InteractionResponseType::ChannelMessageWithSource)
+                .interaction_response_data(|message| message.content("Generating image..."))
         })
         .await
         .unwrap();
@@ -103,53 +97,34 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
 
     match url {
         Ok(url) => {
+            let image = download(&Url::parse(&url).unwrap()).await;
+
+            let name = format!("{}.png", interaction.user.id.as_u64());
+
+            let mut file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .read(true)
+                .open(&name)
+                .unwrap();
+
+            file.write_all(&image).unwrap();
+
+            // We drop the file here because it won't get written to disk otherwise and
+            // Discord API will be confused.
+            drop(file);
+
+            let attachment = AttachmentType::File {
+                filename: name.clone(),
+                file: &tokio::fs::File::open(&name).await.unwrap(),
+            };
+
             let msg = interaction
-                .edit_original_interaction_response(&ctx.http, |response| {
-                    response.embed(|embed| {
-                        embed.title("Imagine");
-                        embed.description(RESPONSE_DESCRIPTION);
-                        embed.color(Colour::from_rgb(0, 255, 0));
-                        embed.timestamp(&Timestamp::now());
-
-                        embed.image(&url);
-
-                        embed.footer(|footer| {
-                            footer.text("Powered by OpenAI DALL-E").icon_url("https://cdn.iconscout.com/icon/premium/png-512-thumb/openai-1523664-1290202.png")
-                        });
-
-                        embed
-                    });
-
-                    response.components(|component| {
-                        component.create_action_row(|row| {
-                            row.create_button(|button| {
-                                button
-                                    .label("Retry")
-                                    .style(ButtonStyle::Primary)
-                                    .custom_id("imagine_retry")
-                            })
-                            .create_button(|button| {
-                                button
-                                    .custom_id("imagine_save")
-                                    .style(ButtonStyle::Secondary)
-                                    .label("Save")
-                            })
-                            .create_button(|button| {
-                                button
-                                    .label("Support ❤️")
-                                    .style(ButtonStyle::Link)
-                                    .url("https://patreon.com/_mellow")
-                            })
-                            .create_button(|button| {
-                                button
-                                    .label("Vote")
-                                    .style(ButtonStyle::Link)
-                                    .url("https://top.gg/bot/1087464844288069722/vote")
-                            })
-                        })
-                    });
-
-                    response
+                .create_followup_message(&ctx.http, |message| {
+                    message
+                        .content("Here's your image!")
+                        .add_file(attachment)
+                        .components(|component| components(component))
                 })
                 .await?;
 
@@ -211,7 +186,7 @@ fn should_continue(id: &u64) -> (i64, bool, File, String) {
     (timestamp, _new, file, contents)
 }
 
-pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Result<()> {
+pub async fn retry(ctx: &Context, component: &mut MessageComponentInteraction) -> Result<()> {
     let prompt = fs::read_to_string(format!(
         "tmp/{}:{}:{}:{}",
         component.guild_id.unwrap(),
@@ -221,69 +196,23 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
     ))
     .unwrap();
 
-    let url = prompt.split("\n").collect::<Vec<&str>>()[1];
-
     let (timestamp, _new, mut file, contents) = should_continue(component.user.id.as_u64());
 
     component
         .create_interaction_response(&ctx.http, |response| {
             response
                 .kind(InteractionResponseType::DeferredUpdateMessage)
-                .interaction_response_data(|message| {
-                    message.content("Generating image...");
-                    message
-                })
+                .interaction_response_data(|message| message.content("Generating image..."))
         })
         .await
         .unwrap();
 
     if !_new && timestamp - contents.replace("\0", "").parse::<i64>().unwrap() < 30 {
         component
-            .edit_original_interaction_response(&ctx.http, |response| {
-                response.embed(|embed| {
-                    embed.title("Imagine");
-                    embed.description(
-                        RESPONSE_DESCRIPTION.to_owned()
-                            + "\n**Please wait 30 seconds before retrying**",
-                    );
-                    embed.color(Colour::from_rgb(255, 0, 0));
-                    embed.timestamp(&Timestamp::now());
-
-                    embed.image(&url);
-
-                    embed
-                });
-
-                response.components(|component| {
-                    component.create_action_row(|row| {
-                        row.create_button(|button| {
-                            button
-                                .label("Retry")
-                                .style(ButtonStyle::Primary)
-                                .custom_id("imagine_retry")
-                        })
-                        .create_button(|button| {
-                            button
-                                .custom_id("imagine_save")
-                                .style(ButtonStyle::Secondary)
-                                .label("Save")
-                        })
-                        .create_button(|button| {
-                            button
-                                .label("Support ❤️")
-                                .style(ButtonStyle::Link)
-                                .url("https://patreon.com/_mellow")
-                        })
-                        .create_button(|button| {
-                            button
-                                .label("Vote")
-                                .style(ButtonStyle::Link)
-                                .url("https://top.gg/bot/1087464844288069722/vote")
-                        })
-                    })
-                });
-
-                response
+            .create_followup_message(&ctx.http, |message| {
+                message
+                    .content("You can use this command every 30 seconds.")
+                    .flags(MessageFlags::EPHEMERAL)
             })
             .await?;
 
@@ -300,15 +229,9 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
     let client = Client::new(&key);
 
     component
-        .edit_original_interaction_response(&ctx.http, |response| {
-            response.embed(|embed| {
-                embed.title("Imagine");
-                embed.description("Generating image...");
-                embed.color(Colour::from_rgb(255, 255, 0));
-                embed.timestamp(&Timestamp::now());
-
-                embed
-            })
+        .message
+        .edit(&ctx.http, |edit| {
+            edit.content("Generating another image...")
         })
         .await?;
 
@@ -322,51 +245,38 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
 
     match url {
         Ok(url) => {
+            let image = download(&Url::parse(&url).unwrap()).await;
+
+            let name = format!("{}.png", component.user.id.as_u64());
+
+            let mut file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .read(true)
+                .open(&name)
+                .unwrap();
+            file.write_all(&image).unwrap();
+            // We drop the file here because it won't get written to disk otherwise and
+            // Discord API will be confused.
+            drop(file);
+
+            let attachment = AttachmentType::File {
+                filename: name.clone(),
+                file: &tokio::fs::File::open(&name).await.unwrap(),
+            };
+
+            let attachment_id = component.message.attachments[0].id;
+
             component
-                .edit_original_interaction_response(&ctx.http, |response| {
-                    response.embed(|embed| {
-                        embed.title("Imagine");
-                        embed.description(RESPONSE_DESCRIPTION);
-                        embed.color(Colour::from_rgb(0, 255, 0));
-                        embed.timestamp(&Timestamp::now());
-
-                        embed.image(&url);
-
-                        embed
-                    });
-
-                    response.components(|component| {
-                        component.create_action_row(|row| {
-                            row.create_button(|button| {
-                                button
-                                    .label("Retry")
-                                    .style(ButtonStyle::Primary)
-                                    .custom_id("imagine_retry")
-                            })
-                            .create_button(|button| {
-                                button
-                                    .custom_id("imagine_save")
-                                    .style(ButtonStyle::Secondary)
-                                    .label("Save")
-                            })
-                            .create_button(|button| {
-                                button
-                                    .label("Support ❤️")
-                                    .style(ButtonStyle::Link)
-                                    .url("https://patreon.com/_mellow")
-                            })
-                            .create_button(|button| {
-                                button
-                                    .label("Vote")
-                                    .style(ButtonStyle::Link)
-                                    .url("https://top.gg/bot/1087464844288069722/vote")
-                            })
-                        })
-                    });
-
-                    response
+                .message
+                .edit(&ctx.http, |edit| {
+                    edit.content("Here's your image!")
+                        .remove_existing_attachment(attachment_id)
+                        .attachment(attachment)
                 })
                 .await?;
+
+            fs::remove_file(name).unwrap();
 
             let tmp_name = format!(
                 "tmp/{}:{}:{}:{}",
@@ -401,7 +311,17 @@ pub async fn retry(ctx: &Context, component: &MessageComponentInteraction) -> Re
     Ok(())
 }
 
-pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Result<()> {
+async fn download(url: &Url) -> Vec<u8> {
+    reqwest::get(url.clone())
+        .await
+        .unwrap()
+        .bytes()
+        .await
+        .unwrap()
+        .to_vec()
+}
+
+pub async fn save(ctx: &Context, component: &mut MessageComponentInteraction) -> Result<()> {
     let name = rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(30)
@@ -416,37 +336,17 @@ pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Res
     ))
     .unwrap();
 
-    let url = url.split("\n").collect::<Vec<&str>>()[1];
+    let url = Url::parse(url.split("\n").collect::<Vec<&str>>()[1]).unwrap();
 
     let user_id = component.user.id;
 
     component
         .create_interaction_response(&ctx.http, |response| {
-            response
-                .kind(InteractionResponseType::DeferredUpdateMessage)
-                .interaction_response_data(|message| {
-                    message.content("Saving image...");
-                    message
-                })
+            response.kind(InteractionResponseType::DeferredUpdateMessage)
         })
-        .await
-        .unwrap();
+        .await?;
 
-    let client = reqwest::Client::new();
-
-    dbg!(&url);
-
-    let url = Url::parse(url).unwrap();
-
-    let image = client
-        .get(url.clone())
-        .send()
-        .await
-        .unwrap()
-        .bytes()
-        .await
-        .unwrap()
-        .to_vec();
+    let image = download(&url).await;
 
     fs::create_dir_all(format!("saved_imagines/{}", user_id)).unwrap();
 
@@ -455,42 +355,10 @@ pub async fn save(ctx: &Context, component: &MessageComponentInteraction) -> Res
     file.write_all(&image).unwrap();
 
     component
-        .edit_original_interaction_response(&ctx.http, |response| {
-            response.embed(|embed| {
-                embed.title("Imagine");
-                embed.description(SAVE_DESCRIPTION);
-                embed.color(Colour::from_rgb(0, 255, 0));
-                embed.timestamp(&Timestamp::now());
-
-                embed.image(&url);
-
-                embed
-            });
-
-            response.components(|component| {
-                component.create_action_row(|row| {
-                    row.create_button(|button| {
-                        button
-                            .label("Retry")
-                            .style(ButtonStyle::Primary)
-                            .custom_id("imagine_retry")
-                    })
-                    .create_button(|button| {
-                        button
-                            .label("Support ❤️")
-                            .style(ButtonStyle::Link)
-                            .url("https://patreon.com/_mellow")
-                    })
-                    .create_button(|button| {
-                        button
-                            .label("Vote")
-                            .style(ButtonStyle::Link)
-                            .url("https://top.gg/bot/1087464844288069722/vote")
-                    })
-                })
-            });
-
-            response
+        .message
+        .edit(&ctx.http, |edit| {
+            edit.content("Here's your image!\n\n**Image Saved!**")
+                .components(|component| components_without_save(component))
         })
         .await?;
 
@@ -509,6 +377,58 @@ where
             message: error.message,
         }),
     }
+}
+
+fn components(component: &mut CreateComponents) -> &mut CreateComponents {
+    component.create_action_row(|row| {
+        row.create_button(|button| {
+            button
+                .label("Retry")
+                .style(ButtonStyle::Primary)
+                .custom_id("imagine_retry")
+        })
+        .create_button(|button| {
+            button
+                .custom_id("imagine_save")
+                .style(ButtonStyle::Secondary)
+                .label("Save")
+        })
+        .create_button(|button| {
+            button
+                .label("Support ❤️")
+                .style(ButtonStyle::Link)
+                .url("https://patreon.com/_mellow")
+        })
+        .create_button(|button| {
+            button
+                .label("Vote")
+                .style(ButtonStyle::Link)
+                .url("https://top.gg/bot/1087464844288069722/vote")
+        })
+    })
+}
+
+fn components_without_save(component: &mut CreateComponents) -> &mut CreateComponents {
+    component.create_action_row(|row| {
+        row.create_button(|button| {
+            button
+                .label("Retry")
+                .style(ButtonStyle::Primary)
+                .custom_id("imagine_retry")
+        })
+        .create_button(|button| {
+            button
+                .label("Support ❤️")
+                .style(ButtonStyle::Link)
+                .url("https://patreon.com/_mellow")
+        })
+        .create_button(|button| {
+            button
+                .label("Vote")
+                .style(ButtonStyle::Link)
+                .url("https://top.gg/bot/1087464844288069722/vote")
+        })
+    })
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {

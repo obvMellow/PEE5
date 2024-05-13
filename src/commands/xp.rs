@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use crate::Result;
+use crate::{plugins, Result};
 use pee5::config::{GuildConfig, IsPlugin};
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
@@ -30,10 +30,12 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
         return Ok(());
     }
 
-    let xp = config
-        .get_users()
-        .get(&interaction.user.id.0)
-        .unwrap_or(&(0 as usize));
+    let xp = plugins::xp::get_user(interaction.user.id.0);
+
+    let xp = match xp {
+        Some(u) => u.xp,
+        None => 0,
+    };
 
     interaction
         .create_interaction_response(&ctx.http, |response| {

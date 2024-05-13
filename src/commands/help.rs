@@ -27,6 +27,7 @@ const CHAT: &str = "Creates a channel to chat with the bot.";
 const CONFIG: &str = "Configure the bot. Type `!config` for more information.";
 const DOWNLOAD_VIDEO: &str = "Download a video from YouTube.";
 const REMOVE_BLACKLISTED_WORD: &str = "Remove a blacklisted word.";
+const LEVEL: &str = "Show a users' level.";
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
     interaction
@@ -55,6 +56,7 @@ pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> 
                             .field("!config", CONFIG, true)
                             .field("/download_video", DOWNLOAD_VIDEO, true)
                             .field("/remove_blacklisted_word", REMOVE_BLACKLISTED_WORD, true)
+                            .field("/level", LEVEL, true)
                             .color(Colour::from_rgb(0, 255, 0))
                     })
                 })

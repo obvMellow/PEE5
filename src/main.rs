@@ -80,6 +80,8 @@ impl EventHandler for Handler {
         // Do the logging here
         if config.get_plugins().logging() {
             plugins::logging::run(&ctx, &config, guild_id, &msg).await;
+        } else {
+            plugins::logging::insert_message_to_db(&msg);
         }
 
         // Moderate the message here
@@ -92,7 +94,7 @@ impl EventHandler for Handler {
         if !deleted {
             // Give the user some xp here
             if config.get_plugins().xp() {
-                plugins::xp::run(&msg, &mut config);
+                plugins::xp::run(&msg);
             }
 
             // Afk plugin here
@@ -246,6 +248,11 @@ impl EventHandler for Handler {
             })
             .await
             .unwrap(),
+            Command::create_global_application_command(&ctx.http, |command| {
+                commands::level::register(command)
+            })
+            .await
+            .unwrap(),
         ];
 
         // Create guild config files here
@@ -314,6 +321,7 @@ impl EventHandler for Handler {
                 "remove_blacklisted_word" => {
                     commands::remove_blacklisted_word::run(&ctx, &command).await
                 }
+                "level" => commands::level::run(&ctx, &command).await,
                 _ => Ok(()),
             };
 
@@ -344,8 +352,8 @@ impl EventHandler for Handler {
             insert_message_component_to_database(&component);
 
             let result: Result<()> = match component.data.custom_id.as_str() {
-                "imagine_retry" => commands::imagine::retry(&ctx, &component).await,
-                "imagine_save" => commands::imagine::save(&ctx, &component).await,
+                "imagine_retry" => commands::imagine::retry(&ctx, &mut component).await,
+                "imagine_save" => commands::imagine::save(&ctx, &mut component).await,
                 "reset_yes" => plugins::config::reset_yes(&ctx, &mut component).await,
                 "reset_no" => plugins::config::reset_no(&ctx, &mut component).await,
                 _ => Ok(()),
@@ -430,7 +438,7 @@ pub fn insert_message_component_to_database(component: &MessageComponentInteract
     // Create the table if not exists already
     conn.execute(
         "CREATE TABLE IF NOT EXISTS message_components (
-            id INTEGET PRIMARY KEY,
+            id INTEGER PRIMARY KEY,
             application_id INTEGER NOT NULL,
             kind INTEGER NOT NULL,
             data TEXT NOT NULL,

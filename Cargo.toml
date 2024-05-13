@@ -6,14 +6,14 @@ edition = "2021"
 [dependencies]
 colored = "2.0.0"
 serenity = { version = "0.11", default-features = false, features = ["client", "gateway", "rustls_backend", "model"] }
-tokio = { version = "1.28", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.29", features = ["macros", "rt-multi-thread"] }
 serde_json = "1"
 openai_gpt_rs = "0.4.1"
 rand = "0.8.5"
-serde = "1.0.163"
 reqwest = { version = "0.11.18", features = ["blocking", "default-tls"] }
+serde = "1.0.179"
 scraper = "0.16.0"
 select = "0.6.0"
 rustube = "0.6.0"
-regex = "1.8.1"
+regex = "1.9.3"
 rusqlite = "0.29.0"

@@ -10,6 +10,7 @@ pub mod download_video;
 pub mod echo;
 pub mod help;
 pub mod imagine;
+pub mod level;
 pub mod purge;
 pub mod remove_blacklisted_word;
 pub mod remove_role;
