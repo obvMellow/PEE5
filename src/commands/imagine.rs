@@ -35,128 +35,139 @@ pub struct Error {
 }
 
 pub async fn run(ctx: &Context, interaction: &ApplicationCommandInteraction) -> Result<()> {
-    let _prompt = interaction
-        .data
-        .options
-        .iter()
-        .find(|option| option.name == "prompt")
-        .unwrap()
-        .value
-        .as_ref()
-        .unwrap()
-        .as_str()
-        .unwrap();
-
-    let key = GlobalConfig::load("config.json").openai_key;
-
-    let client = Client::new(&key);
-
-    let (timestamp, _new, mut file, contents) = should_continue(interaction.user.id.as_u64());
-
-    if !_new && timestamp - contents.replace("\0", "").parse::<i64>().unwrap() < 30 {
-        interaction
-            .create_interaction_response(&ctx.http, |response| {
-                response
-                    .kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|message| {
-                        message
-                            .embed(|embed| {
-                                embed
-                                    .title("You are going too fast!")
-                                    .description("You can use this command once every 30 seconds")
-                                    .colour(Colour::from_rgb(255, 0, 0))
-                            })
-                            .flags(MessageFlags::EPHEMERAL)
-                    })
-            })
-            .await
-            .unwrap();
-
-        return Ok(());
-    }
-
-    file.set_len(0).unwrap();
-    file.write_all(timestamp.to_string().as_bytes()).unwrap();
-
     interaction
         .create_interaction_response(&ctx.http, |response| {
-            response
-                .kind(InteractionResponseType::ChannelMessageWithSource)
-                .interaction_response_data(|message| message.content("Generating image..."))
+            response.interaction_response_data(|message| {
+                message
+                    .content("AI features are temporarily disabled.".to_string())
+                    .ephemeral(true);
+                message
+            })
         })
-        .await
-        .unwrap();
+        .await?;
 
-    let url = _generate(&client, |args| {
-        args.prompt(_prompt)
-            .n(1)
-            .size(ImageSize::Small)
-            .response_format(ImageResponseFormat::Url)
-    })
-    .await;
-
-    match url {
-        Ok(url) => {
-            let image = download(&Url::parse(&url).unwrap()).await;
-
-            let name = format!("{}.png", interaction.user.id.as_u64());
-
-            let mut file = OpenOptions::new()
-                .create(true)
-                .write(true)
-                .read(true)
-                .open(&name)
-                .unwrap();
-
-            file.write_all(&image).unwrap();
-
-            // We drop the file here because it won't get written to disk otherwise and
-            // Discord API will be confused.
-            drop(file);
-
-            let attachment = AttachmentType::File {
-                filename: name.clone(),
-                file: &tokio::fs::File::open(&name).await.unwrap(),
-            };
-
-            let msg = interaction
-                .create_followup_message(&ctx.http, |message| {
-                    message
-                        .content("Here's your image!")
-                        .add_file(attachment)
-                        .components(|component| components(component))
-                })
-                .await?;
-
-            let tmp_name = format!(
-                "tmp/{}:{}:{}:{}",
-                interaction.guild_id.unwrap(),
-                interaction.channel_id,
-                interaction.user.id,
-                msg.id,
-            );
-            let mut tmp_file = File::create(tmp_name).unwrap();
-            tmp_file
-                .write_all(format!("{}\n{}", _prompt, url).as_bytes())
-                .unwrap();
-        }
-        Err(error) => {
-            interaction
-                .edit_original_interaction_response(&ctx.http, |response| {
-                    response.embed(|embed| {
-                        embed.title("Imagine");
-                        embed.description(error.message);
-                        embed.color(Colour::from_rgb(255, 0, 0));
-                        embed.timestamp(&Timestamp::now());
-
-                        embed
-                    });
-
-                    response
-                })
-                .await?;
-        }
-    }
+    // let _prompt = interaction
+    //     .data
+    //     .options
+    //     .iter()
+    //     .find(|option| option.name == "prompt")
+    //     .unwrap()
+    //     .value
+    //     .as_ref()
+    //     .unwrap()
+    //     .as_str()
+    //     .unwrap();
+    //
+    // let key = GlobalConfig::load("config.json").openai_key;
+    //
+    // let client = Client::new(&key);
+    //
+    // let (timestamp, _new, mut file, contents) = should_continue(interaction.user.id.as_u64());
+    //
+    // if !_new && timestamp - contents.replace("\0", "").parse::<i64>().unwrap() < 30 {
+    //     interaction
+    //         .create_interaction_response(&ctx.http, |response| {
+    //             response
+    //                 .kind(InteractionResponseType::ChannelMessageWithSource)
+    //                 .interaction_response_data(|message| {
+    //                     message
+    //                         .embed(|embed| {
+    //                             embed
+    //                                 .title("You are going too fast!")
+    //                                 .description("You can use this command once every 30 seconds")
+    //                                 .colour(Colour::from_rgb(255, 0, 0))
+    //                         })
+    //                         .flags(MessageFlags::EPHEMERAL)
+    //                 })
+    //         })
+    //         .await
+    //         .unwrap();
+    //
+    //     return Ok(());
+    // }
+    //
+    // file.set_len(0).unwrap();
+    // file.write_all(timestamp.to_string().as_bytes()).unwrap();
+    //
+    // interaction
+    //     .create_interaction_response(&ctx.http, |response| {
+    //         response
+    //             .kind(InteractionResponseType::ChannelMessageWithSource)
+    //             .interaction_response_data(|message| message.content("Generating image..."))
+    //     })
+    //     .await
+    //     .unwrap();
+    //
+    // let url = _generate(&client, |args| {
+    //     args.prompt(_prompt)
+    //         .n(1)
+    //         .size(ImageSize::Small)
+    //         .response_format(ImageResponseFormat::Url)
+    // })
+    // .await;
+    //
+    // match url {
+    //     Ok(url) => {
+    //         let image = download(&Url::parse(&url).unwrap()).await;
+    //
+    //         let name = format!("{}.png", interaction.user.id.as_u64());
+    //
+    //         let mut file = OpenOptions::new()
+    //             .create(true)
+    //             .write(true)
+    //             .read(true)
+    //             .open(&name)
+    //             .unwrap();
+    //
+    //         file.write_all(&image).unwrap();
+    //
+    //         // We drop the file here because it won't get written to disk otherwise and
+    //         // Discord API will be confused.
+    //         drop(file);
+    //
+    //         let attachment = AttachmentType::File {
+    //             filename: name.clone(),
+    //             file: &tokio::fs::File::open(&name).await.unwrap(),
+    //         };
+    //
+    //         let msg = interaction
+    //             .create_followup_message(&ctx.http, |message| {
+    //                 message
+    //                     .content("Here's your image!")
+    //                     .add_file(attachment)
+    //                     .components(|component| components(component))
+    //             })
+    //             .await?;
+    //
+    //         let tmp_name = format!(
+    //             "tmp/{}:{}:{}:{}",
+    //             interaction.guild_id.unwrap(),
+    //             interaction.channel_id,
+    //             interaction.user.id,
+    //             msg.id,
+    //         );
+    //         let mut tmp_file = File::create(tmp_name).unwrap();
+    //         tmp_file
+    //             .write_all(format!("{}\n{}", _prompt, url).as_bytes())
+    //             .unwrap();
+    //     }
+    //     Err(error) => {
+    //         interaction
+    //             .edit_original_interaction_response(&ctx.http, |response| {
+    //                 response.embed(|embed| {
+    //                     embed.title("Imagine");
+    //                     embed.description(error.message);
+    //                     embed.color(Colour::from_rgb(255, 0, 0));
+    //                     embed.timestamp(&Timestamp::now());
+    //
+    //                     embed
+    //                 });
+    //
+    //                 response
+    //             })
+    //             .await?;
+    //     }
+    // }
 
     Ok(())
 }
