@@ -279,7 +279,7 @@ impl EventHandler for Handler {
             );
         }
 
-        ctx.set_activity(Activity::playing("DM to chat with me!"))
+        ctx.set_activity(Activity::playing("Back to life!"))
             .await;
 
         println!(
