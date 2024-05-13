@@ -24,6 +24,8 @@ pub async fn run<'a>(ctx: &Context, interaction: &ApplicationCommandInteraction)
                     })
             })
             .await?;
+
+        return Ok(());
     }
 
     interaction
